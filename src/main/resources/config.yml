@@ -1,0 +1,21 @@
+# AutoChunkLoader
+# Language: ja / en (edit plugins/AutoChunkLoader/lang/<code>.yml to customize)
+language: ja
+
+limits:
+  max-radius: 4            # max radius for center+radius groups; size is (2r+1)^2
+  max-chunks-per-group: 100
+  max-chunks-total: 200    # whole-server cap on kept chunks
+  max-groups-per-player: 5
+
+inspector:
+  radius: 6                # chunks around the player to draw
+  height: 8                # draws +-height blocks around eye level
+  interval-ticks: 5
+  step: 1.0                # particle spacing in blocks
+  max-particles: 600       # per update per player; spacing widens above this
+  color: "#4ade80"
+  size: 1.0
+
+list:
+  page-size: 8
