@@ -25,7 +25,7 @@ Register the chunk you stand in with `/acl add`. The plugin keeps it loaded unti
 
 - Short commands for the chunk you stand in: `/acl add`, `/acl remove`, `/acl here`
 - Groups by radius, chunk coordinates, two block coordinates (`~` allowed, y ignored) or `pos1` / `pos2`
-- `list`, `info`, `tp`, `resize`, `expand`, `rename`, with clickable buttons, hover text and paging
+- `list`, `info`, `resize`, `expand`, `rename`, with clickable buttons, hover text and paging
 - Inspector (`/acl i`): outlines the kept chunks with particles, visible only to you
 - Tickets are reference counted, so overlapping groups are safe
 - Groups survive restarts, in every world
@@ -58,7 +58,6 @@ Requires Paper 26.3 and Java 25.
 | `/acl add here <name>`, `/acl add chunk <name> [x z]` | Add only this (or the given) chunk to an existing group |
 | `/acl list [page]` | List groups; world names are coloured by dimension |
 | `/acl info [name]` | Details of a group |
-| `/acl tp <name>` | Teleport to a group, across worlds |
 | `/acl resize <name> <+n/-n>` | Grow or shrink by n chunks on every side |
 | `/acl expand [name]` | Grow to include the current chunk |
 | `/acl rename <old> <new>` | Rename |
@@ -73,7 +72,6 @@ Requires Paper 26.3 and Java 25.
 |---|---|---|
 | `autochunkloader.use` | list, info, here, inspector, help | everyone |
 | `autochunkloader.manage` | add, remove, resize, expand, rename your own groups | op |
-| `autochunkloader.tp` | tp | op |
 | `autochunkloader.admin` | any group, reload, ignore limits | op |
 
 ## Configuration
