@@ -1,93 +1,122 @@
 <div align="center">
 
-[English](README.md) | **日本語**
+<p><a href="README.md">English</a> | <b>日本語</b></p>
 
-# AutoChunkLoader
+<h1>AutoChunkLoader</h1>
 
-**短いコマンドで、チャンクをロードしたままにする。近くに誰もいなくても。**
+<h3>短いコマンドでチャンクを読み込んだままにする。近くに誰もいなくても。</h3>
 
-プラグイン用チャンクチケットでチャンクを維持する Paper プラグインです。ホッパーやレッドストーン、仕分け機が、プレイヤーから離れても止まりません。
+<p>プラグインのチャンクチケットでチャンクを開いたままにする Paper プラグインです。ホッパー、レッドストーン、アイテム仕分け機が、プレイヤーから離れても動き続けます。</p>
 
-<a href="https://papermc.io/"><img src="https://img.shields.io/badge/Paper-26.3-4b8bbe?style=flat-square" alt="Paper 26.3"></a>
-<a href="https://adoptium.net/"><img src="https://img.shields.io/badge/Java-25-e8833a?style=flat-square&logo=openjdk&logoColor=white" alt="Java 25"></a>
-<img src="https://img.shields.io/badge/Minecraft-Java%20Edition-62b47a?style=flat-square" alt="Minecraft Java Edition">
-<img src="https://img.shields.io/badge/Languages-ja%20%7C%20en-97ca00?style=flat-square" alt="ja | en">
+<p>
+<a href="https://github.com/Lapius7/AutoChunkLoader-plugin/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/Lapius7/AutoChunkLoader-plugin?label=release&style=flat-square&color=e8833a&logo=github"></a>
+<a href="https://papermc.io/"><img alt="Paper 26.3" src="https://img.shields.io/badge/Paper-26.3-4b8bbe?style=flat-square"></a>
+<a href="https://adoptium.net/"><img alt="Java 25" src="https://img.shields.io/badge/Java-25-f89820?style=flat-square&logo=openjdk&logoColor=white"></a>
+<img alt="Minecraft Java Edition" src="https://img.shields.io/badge/Minecraft-Java%20Edition-62b47a?style=flat-square">
+<img alt="Languages: ja, en" src="https://img.shields.io/badge/Languages-ja%20%7C%20en-97ca00?style=flat-square">
+<a href="https://github.com/Lapius7/AutoChunkLoader-plugin/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Lapius7/AutoChunkLoader-plugin?style=flat-square&color=e3b341&logo=github"></a>
+<a href="https://github.com/Lapius7/AutoChunkLoader-plugin/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/Lapius7/AutoChunkLoader-plugin?style=flat-square&color=2f81f7"></a>
+</p>
 
-[Quick start](#quick-start) · [コマンド](#コマンド) · [設定](#設定) · [制限](#制限)
+<p><a href="#quick-start">Quick start</a> · <a href="#コマンド">コマンド</a> · <a href="#設定">設定</a> · <a href="#制限">制限</a></p>
+
+<p><img src="assets/chat.png" alt="Paper 26.3 のテストサーバーでの /acl add、/acl info、/acl remove chunk のチャット表示（英語）" width="640"></p>
 
 </div>
 
 ## 概要
 
-今いるチャンクを `/acl add` で登録すると、削除するまでロードされ続けます。グループは複数チャンクにでき(半径、または 2 つのブロック座標の範囲)、オーバーワールド・ネザー・エンドで使えます。
+チャンクの上で `/acl add` を実行すると、削除するまでそのチャンクを読み込んだままにします。グループには複数のチャンクを入れられます。自分の周囲の半径、または 2 つのブロック座標で囲んだ範囲を指定できます。どのディメンションでも使えます。
+
+> [!NOTE]
+> Paper 26.3 のテストサーバーで、オーバーワールドとネザーを確認しました。エンドと、Inspector の `full` モードは 0.1.0 では再確認していません。
 
 ## 特長
 
-- 今いるチャンク向けの短いコマンド: `/acl add`、`/acl remove`、`/acl here`
-- 半径、チャンク座標、ブロック座標 2 点(`~` 可、y は無視)、`pos1` / `pos2` で範囲を指定
-- `list`・`info`・`resize`・`expand`・`rename`。クリックできるボタン、ホバー説明、ページ送りつき
-- Inspector(`/acl i`): 維持中のチャンクの外周の辺だけをパーティクルで表示(上下の水平線と角の縦線。壁面・内側には何も出しません)。自分にだけ見えます。`inspector.mode: full` で従来の輪と支柱の描き方に戻せます
-- チケットは参照カウントで管理するので、グループが重なっても安全
-- 再起動後も、すべてのワールドで復元
-- 日本語と英語のメッセージ。言語ファイルは編集できます
+- 今いるチャンクを短いコマンドで操作: `/acl add`、`/acl remove`、`/acl here`
+- 半径、チャンク座標、2 つのブロック座標（`~` 可、y は無視）、`pos1` / `pos2` で追加
+- 既存グループにチャンクを 1 つずつ足す・外すことができ、長方形でないグループも作れる
+- `list`、`info`、`resize`、`expand`、`rename`。クリックできるボタンとホバー表示つき
+- Inspector（`/acl i`）: 登録したチャンクの外周をパーティクルで描き、自分にだけ見える。既定の `edges` は外側の辺だけを描き、`full` は壁全体にリングと支柱を描く
+- チケットは参照カウントなので、グループが重なっても安全
+- グループは再起動後も残り、すべてのワールドで保存される
+- 日本語と英語のメッセージ。どちらの言語ファイルも編集できる
 
 ## Quick start
 
-Paper 26.3 と Java 25 が必要です。
+> [!NOTE]
+> Paper 26.3 と Java 25 が必要です。
 
-1. `AutoChunkLoader-0.1.0.jar` を `plugins/` に入れて、サーバーを起動します。
-2. チャンクの中で `/acl add` を実行し、`/acl here` で確かめます。
-3. 外すときは `/acl remove` です。
+1. [Releases](https://github.com/Lapius7/AutoChunkLoader-plugin/releases/latest) から `AutoChunkLoader-0.1.0.jar` をダウンロードして `plugins/` に置き、サーバーを起動します。
+2. チャンクの上で `/acl add` を実行します。`/acl here` で確認できます。
+3. 削除するときは `/acl remove` です。
 
 ## コマンド
 
-`/acl` と `/autochunkloader` は同じです。
+`/acl` は `/autochunkloader` と同じです。
 
 <details>
 <summary>コマンド一覧</summary>
 
 | コマンド | 内容 |
 |---|---|
-| `/acl here` | 今いるチャンクの状態(登録の有無・グループ・ロードレベル) |
-| `/acl add [名前] [半径]` | 今いるチャンクを登録(名前を省くと自動命名) |
+| `/acl here` | 今いるチャンクの状態（登録の有無、グループ、ロードレベル） |
+| `/acl add [名前] [半径]` | 今いるチャンクを登録（名前を省くと自動で付く） |
 | `/acl add <名前> <x> <z> [半径] [ワールド]` | チャンク座標で登録 |
-| `/acl add <名前> <x1> <y1> <z1> <x2> <y2> <z2> [ワールド]` | ブロック座標 2 点の範囲のチャンクをすべて登録 |
+| `/acl add <名前> <x1> <y1> <z1> <x2> <y2> <z2> [ワールド]` | 2 つのブロック座標の間にあるチャンクをすべて登録 |
 | `/acl pos1`、`/acl pos2`、`/acl add <名前> sel` | 2 点を選んでから登録 |
-| `/acl remove [名前]` | 削除してチケットを外す(複数チャンクは確認あり) |
-| `/acl remove here`、`/acl remove chunk [名前] [x z]` | 今いる(または指定した)チャンクだけをグループから外す。空になったグループは削除され、2 つ以上に分かれる形も許可 |
-| `/acl add here <名前>`、`/acl add chunk <名前> [x z]` | 今いる(または指定した)チャンクだけを既存のグループに足す |
-| `/acl list [ページ]` | 一覧。ワールド名はディメンションで色分け |
+| `/acl add here <名前>`、`/acl add chunk <名前> [x z]` | 既存グループに今いる（または指定した）チャンクだけを足す |
+| `/acl remove [名前]`、`/acl remove chunk <名前> [x z]` | グループを削除（複数チャンクは確認あり）、またはチャンクを 1 つ外す |
+| `/acl list [ページ]` | グループ一覧。ワールド名はディメンションごとに色が付く |
 | `/acl info [名前]` | グループの詳細 |
-| `/acl resize <名前> <+n/-n>` | 全方向に n チャンク広げる/縮める |
-| `/acl expand [名前]` | 今いるチャンクを含むように広げる |
-| `/acl rename <旧> <新>` | 名前変更 |
-| `/acl inspector`、`/acl i` | 外周表示の ON/OFF |
-| `/acl reload` | 設定と言語ファイルの再読み込み |
+| `/acl resize <名前> <+n/-n>` | 四方向に n チャンクずつ拡大・縮小 |
+| `/acl expand [名前]` | 今いるチャンクを含むように拡大 |
+| `/acl rename <旧名> <新名>` | 名前を変更 |
+| `/acl inspector`、`/acl i` | 外周表示の切り替え |
+| `/acl reload` | 設定と言語ファイルを再読み込み |
 
 </details>
 
 ### 権限
 
-| 権限 | 内容 | 既定 |
+| 権限 | できること | 既定 |
 |---|---|---|
-| `autochunkloader.use` | list・info・here・inspector・help | 全員 |
-| `autochunkloader.manage` | 自分のグループの add・remove・resize・expand・rename | OP |
-| `autochunkloader.admin` | 全グループの操作、reload、上限の無視 | OP |
+| `autochunkloader.use` | list、info、here、inspector、help | 全員 |
+| `autochunkloader.manage` | 自分のグループの add、remove、resize、expand、rename | op |
+| `autochunkloader.admin` | 他人のグループの操作、reload、上限の無視 | op |
 
 ## 設定
 
-`plugins/AutoChunkLoader/config.yml`: `language`(`ja` / `en`)、`limits`(半径・1 グループのチャンク数・全体のチャンク数・1 人あたりのグループ数)、`inspector`(`mode`: `edges`(既定)か `full`・半径・高さ・刻み・輪と支柱の間隔(`full` のみ)・距離による間引き・粒の上限・辺と角の色とサイズ)、`list.page-size`。メッセージは `lang/<言語コード>.yml` を編集して変えられます。
+`plugins/AutoChunkLoader/config.yml`:
+
+| キー | 既定 | 内容 |
+|---|---|---|
+| `language` | `ja` | `ja` または `en`。メッセージは `lang/<code>.yml` で変更できる |
+| `limits.max-radius` | `4` | 中心＋半径で作るグループの最大半径。大きさは (2r+1)² |
+| `limits.max-chunks-per-group` | `100` | 1 グループのチャンク数 |
+| `limits.max-chunks-total` | `200` | サーバー全体で保持するチャンク数 |
+| `limits.max-groups-per-player` | `5` | 1 人あたりのグループ数 |
+| `inspector.mode` | `edges` | `edges` または `full` |
+| `inspector.*` | | 半径、高さ、間隔、粒の間隔、線の間隔、距離による間引き、粒子数の上限、色とサイズ |
+| `list.page-size` | `8` | `/acl list` の 1 ページあたりの件数 |
 
 ## 制限
 
 > [!IMPORTANT]
-> チケットはチャンクをロードして動かし続けますが、バニラはランダムティックとモブ湧きを近くのプレイヤーに結びつけています。Paper 26.3 での実測(プレイヤーから約 3000 ブロック離れたチャンク、ロードレベル `ENTITY_TICKING`):
->
+> チケットはチャンクを読み込んだまま動かし続けますが、バニラではランダムティックとモブの湧きがプレイヤーの近くに結び付いています。Paper 26.3 で、どのプレイヤーからも約 3000 ブロック離れたチャンク（ロードレベル `ENTITY_TICKING`）を試した結果です。
 > - ホッパーは動き続けた。
-> - 遠方の作物は育たなかった(3 分で age 0。プレイヤーの近くの同じ作物は age 7 まで成長)。
-> - 遠方のグループではモブが湧かなかった(プレイヤーの近くでは湧いた)。
+> - 遠方の作物は育たなかった（3 分後も age 0。プレイヤーの近くの同じ作物は age 7 まで育った）。
+> - 遠方のグループではモブが湧かなかった。プレイヤーの近くでは湧いた。
 >
-> アイテムを運ぶ装置は動きます。湧きやランダムティックに頼る農場・モブトラップは動かない見込みです。
+> アイテムを運ぶ装置は動きますが、農場やモブトラップはプレイヤーが近くにいる必要があります。
 
-> [!NOTE]
-> 未検証: 遠方のレッドストーン時計、プラグイン起動後に読み込まれるワールド、ネザー・エンド以外の追加ワールド。
+<details>
+<summary>ソースからビルドする</summary>
+
+Java 25 が必要です。jar は `build/libs/` に出力されます。
+
+```sh
+./gradlew build
+```
+
+</details>
