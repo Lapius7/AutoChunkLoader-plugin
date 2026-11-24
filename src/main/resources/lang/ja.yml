@@ -50,6 +50,11 @@ btn:
   grow: '<gray>[</gray><green>+1</green><gray>]</gray>'
   shrink: '<gray>[</gray><gold>-1</gold><gray>]</gray>'
   rename: '<gray>[</gray><light_purple>名前変更</light_purple><gray>]</gray>'
+  remove-chunk: '<gray>[</gray><gold>このチャンクを外す</gold><gray>]</gray>'
+  remove-chunk-named: '<gray>[</gray><gold>外す: <name></gold><gray>]</gray>'
+  add-chunk: '<gray>[</gray><green>既存グループに足す</green><gray>]</gray>'
+  chunk-add: '<gray>[</gray><green>+チャンク</green><gray>]</gray>'
+  chunk-remove: '<gray>[</gray><gold>-チャンク</gold><gray>]</gray>'
   prev: '<gray>[</gray><aqua>◀ 前へ</aqua><gray>]</gray>'
   next: '<gray>[</gray><aqua>次へ ▶</aqua><gray>]</gray>'
   prev-off: '<dark_gray>[◀ 前へ]</dark_gray>'
@@ -67,6 +72,10 @@ hover:
   grow: '<green>全方向に 1 チャンク広げる</green>'
   shrink: '<gold>全方向に 1 チャンク縮める</gold>'
   rename: '<light_purple>名前変更コマンドを入力欄に出す</light_purple>'
+  remove-chunk: '<gold>今いるチャンクだけをグループから外す</gold>'
+  add-chunk: '<green>グループ名を入力して、今いるチャンクを足す</green>'
+  chunk-add: '<green>今いるチャンクをこのグループに足す</green>'
+  chunk-remove: '<gold>今いるチャンクをこのグループから外す</gold>'
   prev: '<aqua>前のページ</aqua>'
   next: '<aqua>次のページ</aqua>'
   suggest: '<gray>クリックで入力欄に出す</gray>'
@@ -83,6 +92,10 @@ ok:
   inspector-on: '境界表示を <green>ON</green> にしました。登録チャンクの外周が自分にだけ見えます'
   inspector-off: '境界表示を <red>OFF</red> にしました'
   reloaded: '設定と言語ファイルを読み直しました'
+  chunk-added: 'チャンク <white>(<x>, <z>)</white> を <white><name></white> に足しました <dark_gray>(計 <chunks> チャンク)</dark_gray>'
+  chunk-removed: 'チャンク <white>(<x>, <z>)</white> を <white><name></white> から外しました <dark_gray>(残り <chunks> チャンク)</dark_gray>'
+  chunk-removed-last: 'チャンク <white>(<x>, <z>)</white> が最後の 1 つだったため、<white><name></white> を削除しました'
+  split: '<gold>グループは <regions> 個の領域に分かれました</gold>'
 
 err:
   unknown-sub: '<red>不明なサブコマンド: <sub></red>'
@@ -111,6 +124,10 @@ err:
   tp-failed: '<red>移動に失敗しました</red>'
   too-small: '<red>これ以上縮められません</red>'
   other-world: '<red>別のワールドのグループは広げられません</red>'
+  chunk-usage: '<red>使い方: /acl remove here | /acl remove chunk [名前] [x z]、/acl add here <名前> | /acl add chunk <名前> [x z]</red>'
+  add-chunk-usage: '<red>足す先のグループ名が必要です (例: /acl add here <名前>)</red>'
+  chunk-already-in: '<red>チャンク (<x>, <z>) は既に <name> に含まれています</red>'
+  chunk-not-in: '<red>チャンク (<x>, <z>) は <name> に含まれていません</red>'
 
 here:
   title: 'チャンク <x>, <z>'
@@ -121,6 +138,7 @@ here:
 
 remove:
   pick: '今いるチャンクは複数のグループに含まれています。削除するものを選んでください'
+  pick-chunk: '指定のチャンクは複数のグループに含まれています。外すグループを選んでください'
   confirm: '<white><name></white> (<chunks> チャンク) を削除しますか?'
 
 list:
@@ -128,6 +146,7 @@ list:
   title: 'グループ一覧 <dark_gray>(<count> 件 / <chunks> チャンク)</dark_gray>'
   row: '<white><name></white> <dark_gray>[<world> (<x>, <z>) <w>×<d>=<chunks>]</dark_gray>'
   row-inactive: '<gray><name></gray> <dark_gray>[<world> 未ロード]</dark_gray>'
+  row-shape: '<white><name></white> <dark_gray>[<world> (<x>, <z>) <chunks> チャンク 外接<w>×<d>]</dark_gray>'
   footer: '<dark_gray> </dark_gray><prev> <gray><page>/<pages></gray> <next>'
 
 info:
@@ -135,6 +154,7 @@ info:
   world-missing: '(未ロード)'
   range: 'チャンク <x1>,<z1> 〜 <x2>,<z2> <dark_gray>(<w>×<d> = <chunks>)</dark_gray>'
   level-count: '<level> <dark_gray><n>/<total></dark_gray>'
+  range-shape: 'チャンク <x1>,<z1> 〜 <x2>,<z2> の外接 <dark_gray>(<w>×<d>、実際は <chunks> チャンク / <regions> 領域)</dark_gray>'
   inactive: '<red>チケット未適用 (ワールドが未ロード)</red>'
 
 pos:
@@ -148,6 +168,8 @@ help:
     add: '/acl add [名前] [半径]'
     add-range: '/acl add <名前> <x1> <y1> <z1> <x2> <y2> <z2>'
     remove: '/acl remove [名前]'
+    remove-chunk: '/acl remove here | chunk [名前] [x z]'
+    add-chunk: '/acl add here <名前> | chunk <名前> [x z]'
     list: '/acl list [ページ]'
     info: '/acl info [名前]'
     tp: '/acl tp <名前>'
@@ -162,6 +184,8 @@ help:
     add: '今いるチャンクを登録 (名前省略で自動命名)'
     add-range: 'ブロック座標 2 点の範囲を 1 グループに (~ 可、y は無視、末尾に sel で pos1/pos2)'
     remove: 'グループ削除 (名前省略で今いるチャンクのもの)'
+    remove-chunk: '今いる/指定チャンクだけをグループから外す (空なら削除、分離も可)'
+    add-chunk: '今いる/指定チャンクを既存グループに足す'
     list: '一覧 (クリックで info / tp / 削除)'
     info: 'グループの詳細'
     tp: 'グループの中心へ移動'

@@ -30,9 +30,9 @@ public final class GroupManager {
         this.dataFile = plugin.getDataFolder().toPath().resolve("data.yml");
     }
 
-    public static long pack(int x, int z) { return ((long) x << 32) | (z & 0xFFFFFFFFL); }
-    public static int unpackX(long k) { return (int) (k >> 32); }
-    public static int unpackZ(long k) { return (int) k; }
+    public static long pack(int x, int z) { return ChunkGroup.pack(x, z); }
+    public static int unpackX(long k) { return ChunkGroup.unpackX(k); }
+    public static int unpackZ(long k) { return ChunkGroup.unpackZ(k); }
 
     /** Bumped on any change; the inspector uses it to invalidate its outline cache. */
     public int version() { return version; }
@@ -68,11 +68,28 @@ public final class GroupManager {
         changed();
     }
 
-    public void resize(ChunkGroup g, int minX, int minZ, int maxX, int maxZ) {
+    /** Replace the whole chunk set (resize / expand). */
+    public void replaceChunks(ChunkGroup g, Collection<Long> chunks) {
         release(g);
-        g.setBounds(minX, minZ, maxX, maxZ);
+        g.setChunks(chunks);
         apply(g);
         changed();
+    }
+
+    /** Add one chunk to the group, taking its ticket if the group is active. */
+    public boolean addChunk(ChunkGroup g, int x, int z) {
+        if (!g.addChunk(x, z)) return false;
+        if (g.active()) ref(g.world(), pack(x, z));
+        changed();
+        return true;
+    }
+
+    /** Remove one chunk from the group, dropping its ticket when no other group holds it. Caller handles the empty case. */
+    public boolean removeChunk(ChunkGroup g, int x, int z) {
+        if (!g.removeChunk(x, z)) return false;
+        if (g.active()) unref(g.world(), pack(x, z));
+        changed();
+        return true;
     }
 
     public void rename(ChunkGroup g, String newName) {
@@ -88,36 +105,35 @@ public final class GroupManager {
     }
 
     // ---- tickets ----
+    private void ref(String world, long k) {
+        World w = Bukkit.getWorld(world);
+        if (w == null) return;
+        Map<Long, Integer> m = refs.computeIfAbsent(world, x -> new HashMap<>());
+        if (m.merge(k, 1, Integer::sum) == 1) w.addPluginChunkTicket(unpackX(k), unpackZ(k), plugin);
+    }
+
+    private void unref(String world, long k) {
+        Map<Long, Integer> m = refs.get(world);
+        if (m == null) return;
+        Integer n = m.get(k);
+        if (n == null) return;
+        if (n <= 1) {
+            m.remove(k);
+            World w = Bukkit.getWorld(world);
+            if (w != null) w.removePluginChunkTicket(unpackX(k), unpackZ(k), plugin);
+        } else m.put(k, n - 1);
+    }
+
     public void apply(ChunkGroup g) {
         if (g.active()) return;
-        World w = Bukkit.getWorld(g.world());
-        if (w == null) return;
-        Map<Long, Integer> m = refs.computeIfAbsent(g.world(), k -> new HashMap<>());
-        for (int x = g.minX(); x <= g.maxX(); x++) {
-            for (int z = g.minZ(); z <= g.maxZ(); z++) {
-                if (m.merge(pack(x, z), 1, Integer::sum) == 1) w.addPluginChunkTicket(x, z, plugin);
-            }
-        }
+        if (Bukkit.getWorld(g.world()) == null) return;
+        for (long k : g.chunks()) ref(g.world(), k);
         g.active(true);
     }
 
     public void release(ChunkGroup g) {
         if (!g.active()) return;
-        World w = Bukkit.getWorld(g.world());
-        Map<Long, Integer> m = refs.get(g.world());
-        if (m != null) {
-            for (int x = g.minX(); x <= g.maxX(); x++) {
-                for (int z = g.minZ(); z <= g.maxZ(); z++) {
-                    long k = pack(x, z);
-                    Integer n = m.get(k);
-                    if (n == null) continue;
-                    if (n <= 1) {
-                        m.remove(k);
-                        if (w != null) w.removePluginChunkTicket(x, z, plugin);
-                    } else m.put(k, n - 1);
-                }
-            }
-        }
+        for (long k : g.chunks()) unref(g.world(), k);
         g.active(false);
     }
 
@@ -162,11 +178,20 @@ public final class GroupManager {
             if (s == null) continue;
             try {
                 List<Integer> b = s.getIntegerList("bounds"); // [minX, minZ, maxX, maxZ]
-                if (b.size() != 4) throw new IllegalArgumentException("bounds must have 4 numbers");
+                List<Integer> cl = s.getIntegerList("chunks"); // x,z,x,z,... (non-rectangular groups)
+                if (cl.isEmpty() && b.size() != 4) throw new IllegalArgumentException("needs bounds (4 numbers) or chunks");
+                if (!cl.isEmpty() && cl.size() % 2 != 0) throw new IllegalArgumentException("chunks must be x,z pairs");
                 UUID owner = s.contains("owner") ? UUID.fromString(Objects.requireNonNull(s.getString("owner"))) : null;
                 Instant created = s.contains("created") ? Instant.parse(Objects.requireNonNull(s.getString("created"))) : null;
-                ChunkGroup g = new ChunkGroup(name, Objects.requireNonNull(s.getString("world")),
-                        b.get(0), b.get(1), b.get(2), b.get(3), owner, created);
+                String world = Objects.requireNonNull(s.getString("world"));
+                ChunkGroup g;
+                if (!cl.isEmpty()) {
+                    List<Long> set = new ArrayList<>();
+                    for (int i = 0; i < cl.size(); i += 2) set.add(pack(cl.get(i), cl.get(i + 1)));
+                    g = new ChunkGroup(name, world, set, owner, created);
+                } else {
+                    g = new ChunkGroup(name, world, b.get(0), b.get(1), b.get(2), b.get(3), owner, created);
+                }
                 groups.put(name.toLowerCase(Locale.ROOT), g);
             } catch (Exception e) {
                 plugin.getLogger().warning("Skipping invalid group '" + name + "' in data.yml: " + e.getMessage());
@@ -180,7 +205,13 @@ public final class GroupManager {
         for (ChunkGroup g : groups.values()) {
             String p = "groups." + g.name();
             y.set(p + ".world", g.world());
-            y.set(p + ".bounds", List.of(g.minX(), g.minZ(), g.maxX(), g.maxZ()));
+            if (g.isRectangle()) {
+                y.set(p + ".bounds", List.of(g.minX(), g.minZ(), g.maxX(), g.maxZ()));
+            } else {
+                List<Integer> flat = new ArrayList<>();
+                g.chunks().stream().sorted().forEach(k -> { flat.add(unpackX(k)); flat.add(unpackZ(k)); });
+                y.set(p + ".chunks", flat);
+            }
             y.set(p + ".owner", g.owner().toString());
             y.set(p + ".created", g.created().toString());
         }

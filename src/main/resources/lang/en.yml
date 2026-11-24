@@ -50,6 +50,11 @@ btn:
   grow: '<gray>[</gray><green>+1</green><gray>]</gray>'
   shrink: '<gray>[</gray><gold>-1</gold><gray>]</gray>'
   rename: '<gray>[</gray><light_purple>rename</light_purple><gray>]</gray>'
+  remove-chunk: '<gray>[</gray><gold>remove this chunk</gold><gray>]</gray>'
+  remove-chunk-named: '<gray>[</gray><gold>remove from: <name></gold><gray>]</gray>'
+  add-chunk: '<gray>[</gray><green>add to a group</green><gray>]</gray>'
+  chunk-add: '<gray>[</gray><green>+chunk</green><gray>]</gray>'
+  chunk-remove: '<gray>[</gray><gold>-chunk</gold><gray>]</gray>'
   prev: '<gray>[</gray><aqua>◀ prev</aqua><gray>]</gray>'
   next: '<gray>[</gray><aqua>next ▶</aqua><gray>]</gray>'
   prev-off: '<dark_gray>[◀ prev]</dark_gray>'
@@ -67,6 +72,10 @@ hover:
   grow: '<green>Grow by 1 chunk on every side</green>'
   shrink: '<gold>Shrink by 1 chunk on every side</gold>'
   rename: '<light_purple>Put the rename command in the chat box</light_purple>'
+  remove-chunk: '<gold>Take only this chunk out of the group</gold>'
+  add-chunk: '<green>Type a group name to add this chunk to it</green>'
+  chunk-add: '<green>Add the chunk you are in to this group</green>'
+  chunk-remove: '<gold>Remove the chunk you are in from this group</gold>'
   prev: '<aqua>Previous page</aqua>'
   next: '<aqua>Next page</aqua>'
   suggest: '<gray>Click to put it in the chat box</gray>'
@@ -83,6 +92,10 @@ ok:
   inspector-on: 'Outline <green>ON</green>. Only you can see the border of kept chunks'
   inspector-off: 'Outline <red>OFF</red>'
   reloaded: 'Config and language files reloaded'
+  chunk-added: 'Added chunk <white>(<x>, <z>)</white> to <white><name></white> <dark_gray>(<chunks> chunks now)</dark_gray>'
+  chunk-removed: 'Removed chunk <white>(<x>, <z>)</white> from <white><name></white> <dark_gray>(<chunks> chunks left)</dark_gray>'
+  chunk-removed-last: 'Chunk <white>(<x>, <z>)</white> was the last one, so <white><name></white> was deleted'
+  split: '<gold>The group is now <regions> separate regions</gold>'
 
 err:
   unknown-sub: '<red>Unknown subcommand: <sub></red>'
@@ -111,6 +124,10 @@ err:
   tp-failed: '<red>Teleport failed</red>'
   too-small: '<red>Cannot shrink any further</red>'
   other-world: '<red>That group is in another world</red>'
+  chunk-usage: '<red>Usage: /acl remove here | /acl remove chunk [name] [x z], /acl add here <name> | /acl add chunk <name> [x z]</red>'
+  add-chunk-usage: '<red>A group name is required (e.g. /acl add here <name>)</red>'
+  chunk-already-in: '<red>Chunk (<x>, <z>) is already in <name></red>'
+  chunk-not-in: '<red>Chunk (<x>, <z>) is not in <name></red>'
 
 here:
   title: 'Chunk <x>, <z>'
@@ -121,6 +138,7 @@ here:
 
 remove:
   pick: 'This chunk is in several groups. Pick one to delete'
+  pick-chunk: 'That chunk is in several groups. Pick the one to remove it from'
   confirm: 'Delete <white><name></white> (<chunks> chunks)?'
 
 list:
@@ -128,6 +146,7 @@ list:
   title: 'Groups <dark_gray>(<count> / <chunks> chunks)</dark_gray>'
   row: '<white><name></white> <dark_gray>[<world> (<x>, <z>) <w>×<d>=<chunks>]</dark_gray>'
   row-inactive: '<gray><name></gray> <dark_gray>[<world> not loaded]</dark_gray>'
+  row-shape: '<white><name></white> <dark_gray>[<world> (<x>, <z>) <chunks> chunks, bbox <w>×<d>]</dark_gray>'
   footer: '<dark_gray> </dark_gray><prev> <gray><page>/<pages></gray> <next>'
 
 info:
@@ -135,6 +154,7 @@ info:
   world-missing: '(not loaded)'
   range: 'chunks <x1>,<z1> to <x2>,<z2> <dark_gray>(<w>×<d> = <chunks>)</dark_gray>'
   level-count: '<level> <dark_gray><n>/<total></dark_gray>'
+  range-shape: 'bounding box <x1>,<z1> to <x2>,<z2> <dark_gray>(<w>×<d>, actually <chunks> chunks / <regions> regions)</dark_gray>'
   inactive: '<red>No tickets held (world not loaded)</red>'
 
 pos:
@@ -148,6 +168,8 @@ help:
     add: '/acl add [name] [radius]'
     add-range: '/acl add <name> <x1> <y1> <z1> <x2> <y2> <z2>'
     remove: '/acl remove [name]'
+    remove-chunk: '/acl remove here | chunk [name] [x z]'
+    add-chunk: '/acl add here <name> | chunk <name> [x z]'
     list: '/acl list [page]'
     info: '/acl info [name]'
     tp: '/acl tp <name>'
@@ -162,6 +184,8 @@ help:
     add: 'Register this chunk (name optional, auto-named)'
     add-range: 'Two block positions -> one group (~ ok, y ignored, "sel" uses pos1/pos2)'
     remove: 'Delete a group (no name = the one here)'
+    remove-chunk: 'Take this / the given chunk out of a group (empty = deleted, may split)'
+    add-chunk: 'Add this / the given chunk to an existing group'
     list: 'List groups (click info / tp / delete)'
     info: 'Group details'
     tp: 'Teleport to the group center'
