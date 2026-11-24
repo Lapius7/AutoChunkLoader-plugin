@@ -32,7 +32,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private static final Pattern HAS_LETTER = Pattern.compile(".*[A-Za-z].*");
     private static final int MAX_CHUNK_COORD = 1_875_000;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
-    private static final List<String> SUBS = List.of("help", "add", "here", "remove", "list", "info", "tp", "resize",
+    private static final List<String> SUBS = List.of("help", "add", "here", "remove", "list", "info", "resize",
             "expand", "rename", "pos1", "pos2", "inspector", "i", "reload");
 
     private static final Set<String> RESERVED = Set.of("sel", "selection", "chunk", "confirm");
@@ -76,7 +76,6 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                 case "remove", "rm", "delete", "del" -> { need(s, "manage"); remove(s, r); }
                 case "list", "ls" -> list(s, r);
                 case "info" -> info(s, r);
-                case "tp" -> { need(s, "tp"); tp(s, r); }
                 case "resize" -> { need(s, "manage"); resize(s, r); }
                 case "expand" -> { need(s, "manage"); expand(s, r); }
                 case "rename" -> { need(s, "manage"); rename(s, r); }
@@ -454,7 +453,6 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         page = Math.max(1, Math.min(page, pages));
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("list.title", p("count", all.size()), p("chunks", mgr.totalChunks()))));
-        boolean canTp = s instanceof Player && has(s, "tp");
         for (ChunkGroup g : all.subList((page - 1) * size, Math.min(all.size(), page * size))) {
             Component row = Component.empty().append(m().text("ui.indent"))
                     .append(m().text(!g.active() ? "list.row-inactive" : g.isRectangle() ? "list.row" : "list.row-shape",
@@ -462,7 +460,6 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                             p("x", g.centerX()), p("z", g.centerZ()), p("chunks", g.chunkCount()),
                             p("w", g.width()), p("d", g.depth())))
                     .append(Component.space()).append(m().button("btn.info", "hover.info", "/acl info " + g.name(), true));
-            if (canTp) row = row.append(Component.space()).append(m().button("btn.tp", "hover.tp", "/acl tp " + g.name(), true));
             if (canManage(s, g)) {
                 row = row.append(Component.space())
                         .append(m().button("btn.remove", "hover.remove", "/acl remove " + g.name(), true));
@@ -524,7 +521,6 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         }
 
         Component btns = Component.empty().append(m().text("ui.indent"));
-        if (s instanceof Player && has(s, "tp")) btns = btns.append(m().button("btn.tp", "hover.tp", "/acl tp " + g.name(), true)).append(Component.space());
         if (s instanceof Player) btns = btns.append(m().button("btn.inspector", "hover.inspector", "/acl inspector", true)).append(Component.space());
         if (canManage(s, g)) {
             btns = btns.append(m().button("btn.grow", "hover.grow", "/acl resize " + g.name() + " +1", true)).append(Component.space())
@@ -540,7 +536,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         send(s, lines);
     }
 
-    // =================================================================== tp
+    // =================================================================== display helpers
     /** World name coloured by dimension: overworld green, nether red, end purple, other aqua, not loaded gray. */
     private static Component dim(String name) {
         World w = Bukkit.getWorld(name);
@@ -552,32 +548,6 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                     default -> net.kyori.adventure.text.format.NamedTextColor.AQUA;
                 };
         return Component.text(name, col);
-    }
-
-    /** Standing height for tp: nether-like (no sky, ceiling) worlds scan down for air above a solid block. */
-    private static int safeY(World w, int x, int z) {
-        if (!w.hasCeiling()) return w.getHighestBlockYAt(x, z) + 1;
-        int top = Math.min(w.getMaxHeight() - 1, w.getLogicalHeight() - 1);
-        for (int y = top; y > w.getMinHeight(); y--)
-            if (w.getBlockAt(x, y, z).isPassable() && w.getBlockAt(x, y + 1, z).isPassable()
-                    && w.getBlockAt(x, y - 1, z).isSolid()) return y;
-        return w.getHighestBlockYAt(x, z) + 1;
-    }
-
-    private void tp(CommandSender s, String[] a) {
-        Player p = player(s);
-        if (a.length == 0) throw fail("err.usage", p("usage", "/acl tp <name>"));
-        ChunkGroup g = group(a[0]);
-        World w = Bukkit.getWorld(g.world());
-        if (w == null) throw fail("err.no-such-world", p("world", g.world()));
-        long anc = g.anchor();
-        int bx = GroupManager.unpackX(anc) * 16 + 8, bz = GroupManager.unpackZ(anc) * 16 + 8;
-        int y = safeY(w, bx, bz);
-        Location dest = new Location(w, bx + 0.5, y, bz + 0.5, p.getLocation().getYaw(), p.getLocation().getPitch());
-        p.teleportAsync(dest).thenAccept(ok -> {
-            if (ok) p.sendMessage(m().ok("ok.teleported", p("name", g.name())));
-            else p.sendMessage(m().err("err.tp-failed"));
-        });
     }
 
     // =================================================================== resize / expand
@@ -664,7 +634,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private void help(CommandSender s) {
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("help.title", p("version", plugin.getPluginMeta().getVersion()))));
-        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "tp", "resize", "expand", "rename", "pos", "inspector", "reload"}) {
+        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "pos", "inspector", "reload"}) {
             String cmd = m().raw("help.cmd." + k);
             lines.add(Component.empty().append(m().text("ui.indent")).append(
                     m().text("help.row", p("cmd", cmd), p("desc", m().raw("help.desc." + k)))
@@ -684,7 +654,6 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
             for (String sub : SUBS) {
                 String perm = switch (sub) {
                     case "add", "remove", "resize", "expand", "rename", "pos1", "pos2" -> "manage";
-                    case "tp" -> "tp";
                     case "reload" -> "admin";
                     default -> "use";
                 };
@@ -723,7 +692,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                     else chunkCoords(out, pl, named ? i - 3 : i - 2);
                 } else if (i == 2) out.add("confirm");
             }
-            case "info", "tp" -> { if (i == 1) out.addAll(names(s, false)); }
+            case "info" -> { if (i == 1) out.addAll(names(s, false)); }
             case "resize" -> {
                 if (i == 1) out.addAll(names(s, true));
                 else if (i == 2) out.addAll(List.of("+1", "-1", "+2", "-2"));

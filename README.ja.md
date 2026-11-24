@@ -25,7 +25,7 @@
 
 - 今いるチャンク向けの短いコマンド: `/acl add`、`/acl remove`、`/acl here`
 - 半径、チャンク座標、ブロック座標 2 点(`~` 可、y は無視)、`pos1` / `pos2` で範囲を指定
-- `list`・`info`・`tp`・`resize`・`expand`・`rename`。クリックできるボタン、ホバー説明、ページ送りつき
+- `list`・`info`・`resize`・`expand`・`rename`。クリックできるボタン、ホバー説明、ページ送りつき
 - Inspector(`/acl i`): 維持中のチャンクの外周をパーティクルで表示。自分にだけ見えます
 - チケットは参照カウントで管理するので、グループが重なっても安全
 - 再起動後も、すべてのワールドで復元
@@ -58,7 +58,6 @@ Paper 26.3 と Java 25 が必要です。
 | `/acl add here <名前>`、`/acl add chunk <名前> [x z]` | 今いる(または指定した)チャンクだけを既存のグループに足す |
 | `/acl list [ページ]` | 一覧。ワールド名はディメンションで色分け |
 | `/acl info [名前]` | グループの詳細 |
-| `/acl tp <名前>` | グループへ移動(別ワールドも可) |
 | `/acl resize <名前> <+n/-n>` | 全方向に n チャンク広げる/縮める |
 | `/acl expand [名前]` | 今いるチャンクを含むように広げる |
 | `/acl rename <旧> <新>` | 名前変更 |
@@ -73,7 +72,6 @@ Paper 26.3 と Java 25 が必要です。
 |---|---|---|
 | `autochunkloader.use` | list・info・here・inspector・help | 全員 |
 | `autochunkloader.manage` | 自分のグループの add・remove・resize・expand・rename | OP |
-| `autochunkloader.tp` | tp | OP |
 | `autochunkloader.admin` | 全グループの操作、reload、上限の無視 | OP |
 
 ## 設定

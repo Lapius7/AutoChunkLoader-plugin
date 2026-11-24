@@ -130,20 +130,6 @@ public final class ChunkGroup {
         return n;
     }
 
-    /** Member chunk to stand on: the centre of a rectangle, otherwise the member nearest to the bounding-box centre. */
-    public long anchor() {
-        long c = pack(centerX(), centerZ());
-        if (chunks.contains(c)) return c;
-        long best = c;
-        double bd = Double.MAX_VALUE;
-        double cx = (minX + maxX) / 2.0, cz = (minZ + maxZ) / 2.0;
-        for (long k : chunks) {
-            double dx = unpackX(k) - cx, dz = unpackZ(k) - cz, d = dx * dx + dz * dz;
-            if (d < bd) { bd = d; best = k; }
-        }
-        return best;
-    }
-
     /**
      * Chunks after growing ({@code d > 0}) or shrinking ({@code d < 0}) by |d| on every side.
      * Grow adds all chunks within the square distance; shrink keeps only chunks whose whole square neighbourhood is members.
