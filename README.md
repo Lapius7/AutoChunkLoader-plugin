@@ -26,7 +26,7 @@ Register the chunk you stand in with `/acl add`. The plugin keeps it loaded unti
 - Short commands for the chunk you stand in: `/acl add`, `/acl remove`, `/acl here`
 - Groups by radius, chunk coordinates, two block coordinates (`~` allowed, y ignored) or `pos1` / `pos2`
 - `list`, `info`, `resize`, `expand`, `rename`, with clickable buttons, hover text and paging
-- Inspector (`/acl i`): outlines the kept chunks with particles, visible only to you
+- Inspector (`/acl i`): draws only the outer edges of the kept chunks with particles (top and bottom lines plus corner pillars; nothing on the walls or inside), visible only to you. `inspector.mode: full` restores the old rings-and-posts wall
 - Tickets are reference counted, so overlapping groups are safe
 - Groups survive restarts, in every world
 - Japanese and English messages, editable language files
@@ -76,7 +76,7 @@ Requires Paper 26.3 and Java 25.
 
 ## Configuration
 
-`plugins/AutoChunkLoader/config.yml`: `language` (`ja` / `en`), `limits` (radius, chunks per group, chunks in total, groups per player), `inspector` (radius, height, step, ring and post spacing, distance falloff, particle cap, edge and corner colour and size) and `list.page-size`. Edit `lang/<code>.yml` to change messages.
+`plugins/AutoChunkLoader/config.yml`: `language` (`ja` / `en`), `limits` (radius, chunks per group, chunks in total, groups per player), `inspector` (`mode`: `edges` (default) or `full`, radius, height, step, ring and post spacing (`full` only), distance falloff, particle cap, edge and corner colour and size) and `list.page-size`. Edit `lang/<code>.yml` to change messages.
 
 ## Limits
 

@@ -9,12 +9,13 @@ limits:
   max-groups-per-player: 5
 
 inspector:
+  mode: edges              # edges = only the outline edges (top/bottom lines + corner pillars); full = rings and posts over the whole wall
   radius: 6                # chunks around the player to draw
   height: 16               # draws +-height blocks around eye level
   interval-ticks: 5
   step: 0.5                # particle spacing in blocks (near; widens with distance)
-  ring-spacing: 2          # vertical distance between horizontal lines
-  post-spacing: 8          # a vertical line every N blocks along an edge (corners always have one)
+  ring-spacing: 2          # full mode only: vertical distance between horizontal lines
+  post-spacing: 8          # full mode only: a vertical line every N blocks along an edge (corners always have one)
   falloff: 24              # blocks over which the spacing doubles (far = sparse)
   max-particles: 1500      # per update per player; edges are thinned above this, corners never
   color: "#ffa200"         # edges
