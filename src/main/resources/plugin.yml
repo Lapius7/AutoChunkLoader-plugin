@@ -1,0 +1,25 @@
+name: AutoChunkLoader
+version: '${version}'
+main: org.lapius7.autochunkloader.AutoChunkLoaderPlugin
+api-version: '26.3'
+description: Keeps chosen chunks loaded with plugin chunk tickets.
+authors: [Lapius7]
+commands:
+  acl:
+    description: Manage chunk groups kept loaded by AutoChunkLoader
+    usage: /acl help
+    aliases: [autochunkloader]
+    permission: autochunkloader.use
+permissions:
+  autochunkloader.use:
+    description: list, info, here, inspector, help
+    default: true
+  autochunkloader.manage:
+    description: add / remove / resize / rename your own groups
+    default: op
+  autochunkloader.tp:
+    description: teleport to a group
+    default: op
+  autochunkloader.admin:
+    description: operate on any group, reload, ignore limits
+    default: op

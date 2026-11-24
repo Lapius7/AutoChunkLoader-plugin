@@ -1,0 +1,173 @@
+# AutoChunkLoader 日本語 (MiniMessage 形式)
+prefix: '<gradient:#4ade80:#22d3ee><b>ACL</b></gradient> <dark_gray>»</dark_gray> '
+mark:
+  ok: '<green>✔</green> '
+  err: '<red>✘</red> '
+owner:
+  console: 'コンソール'
+
+ui:
+  rule: '<dark_gray>━━━━━</dark_gray> <gradient:#4ade80:#22d3ee><title></gradient> <dark_gray>━━━━━━━━━━━━━━</dark_gray>'
+  rule-end: '<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</dark_gray>'
+  indent: '<dark_gray> ▸ </dark_gray>'
+
+row: '<dark_gray> │</dark_gray> <gray><k></gray> <dark_gray>:</dark_gray> <white><v></white>'
+
+lbl:
+  world: 'ワールド'
+  range: '範囲'
+  block-range: 'ブロック範囲'
+  center: '中心'
+  owner: '作成者'
+  created: '作成日時'
+  level: 'ロードレベル'
+  tickets: 'チケット'
+  status: '状態'
+
+level:
+  inaccessible: 'アクセス不可'
+  border: 'BORDER (境界)'
+  ticking: 'TICKING (ブロック更新)'
+  entity_ticking: 'ENTITY_TICKING (完全稼働)'
+  unloaded: '未ロード'
+  fmt:
+    inaccessible: '<red><level></red>'
+    border: '<gold><level></gold>'
+    ticking: '<yellow><level></yellow>'
+    entity_ticking: '<green><level></green>'
+    unloaded: '<dark_gray><level></dark_gray>'
+
+btn:
+  help: '<gray>[</gray><aqua>ヘルプ</aqua><gray>]</gray>'
+  info: '<gray>[</gray><aqua>情報</aqua><gray>]</gray>'
+  tp: '<gray>[</gray><green>移動</green><gray>]</gray>'
+  remove: '<gray>[</gray><red>削除</red><gray>]</gray>'
+  remove-named: '<gray>[</gray><red>削除: <name></red><gray>]</gray>'
+  confirm: '<gray>[</gray><red><b>本当に削除</b></red><gray>]</gray>'
+  add-here: '<gray>[</gray><green>ここを登録</green><gray>]</gray>'
+  add-sel: '<gray>[</gray><green>選択範囲を登録</green><gray>]</gray>'
+  inspector: '<gray>[</gray><yellow>境界表示</yellow><gray>]</gray>'
+  grow: '<gray>[</gray><green>+1</green><gray>]</gray>'
+  shrink: '<gray>[</gray><gold>-1</gold><gray>]</gray>'
+  rename: '<gray>[</gray><light_purple>名前変更</light_purple><gray>]</gray>'
+  prev: '<gray>[</gray><aqua>◀ 前へ</aqua><gray>]</gray>'
+  next: '<gray>[</gray><aqua>次へ ▶</aqua><gray>]</gray>'
+  prev-off: '<dark_gray>[◀ 前へ]</dark_gray>'
+  next-off: '<dark_gray>[次へ ▶]</dark_gray>'
+
+hover:
+  help: '<aqua>コマンド一覧を表示</aqua>'
+  info: '<aqua>グループの詳細を表示</aqua>'
+  tp: '<green>グループの中心へ移動</green>'
+  remove: '<red>グループを削除 (複数チャンクは確認あり)</red>'
+  confirm: '<red>クリックすると削除します</red>'
+  add-here: '<green>今いるチャンクを登録</green>'
+  add-sel: '<green>pos1 と pos2 の範囲を登録</green>'
+  inspector: '<yellow>ロード維持中チャンクの外周を表示/非表示</yellow>'
+  grow: '<green>全方向に 1 チャンク広げる</green>'
+  shrink: '<gold>全方向に 1 チャンク縮める</gold>'
+  rename: '<light_purple>名前変更コマンドを入力欄に出す</light_purple>'
+  prev: '<aqua>前のページ</aqua>'
+  next: '<aqua>次のページ</aqua>'
+  suggest: '<gray>クリックで入力欄に出す</gray>'
+
+ok:
+  added: '<white><name></white> を登録しました <dark_gray>(<chunks> チャンク / <world>)</dark_gray>'
+  removed: '<white><name></white> を削除し、チケットを外しました <dark_gray>(<chunks> チャンク)</dark_gray>'
+  teleported: '<white><name></white> へ移動しました'
+  resized: '<white><name></white> を <white><w>×<d></white> に変更しました <dark_gray>(<chunks> チャンク)</dark_gray>'
+  expanded: '<white><name></white> を今いるチャンクまで広げました <dark_gray>(<w>×<d> / <chunks> チャンク)</dark_gray>'
+  renamed: '<white><old></white> → <white><name></white> に名前を変更しました'
+  pos1: 'pos1 を <white>(<x>, <z>)</white> に設定しました'
+  pos2: 'pos2 を <white>(<x>, <z>)</white> に設定しました'
+  inspector-on: '境界表示を <green>ON</green> にしました。登録チャンクの外周が自分にだけ見えます'
+  inspector-off: '境界表示を <red>OFF</red> にしました'
+  reloaded: '設定と言語ファイルを読み直しました'
+
+err:
+  unknown-sub: '<red>不明なサブコマンド: <sub></red>'
+  no-permission: '<red>この操作の権限がありません</red>'
+  player-only: '<red>プレイヤーとして実行してください</red>'
+  no-such-group: '<red>グループ <name> は存在しません</red>'
+  not-owner: '<red><name> はあなたのグループではありません</red>'
+  not-a-number: '<red><what> には数値を指定してください: <value></red>'
+  relative-needs-player: '<red>~ はプレイヤーが実行したときだけ使えます</red>'
+  bad-name: '<red>名前は英数字・- ・_ のみ (1〜32 文字、英字を 1 つ以上含む)</red>'
+  name-taken: '<red>名前 <name> は既に使われています</red>'
+  reserved-name: '<red><name> はコマンド名と衝突するため使えません</red>'
+  no-such-world: '<red>ワールド <world> が見つかりません</red>'
+  sel-missing: '<red>/acl pos1 と /acl pos2 で先に 2 点を選んでください</red>'
+  sel-world: '<red>pos1 と pos2 が別のワールドです</red>'
+  console-world: '<red>コンソールからはワールド名の指定が必要です (例: add <名前> <x> <z> <半径> <ワールド>)</red>'
+  add-usage: '<red>使い方: /acl add [名前] [半径] | /acl add <名前> <x> <z> [半径] [ワールド] | /acl add <名前> <x1> <y1> <z1> <x2> <y2> <z2> [ワールド] | /acl add <名前> sel</red>'
+  out-of-range: '<red>座標がワールドの範囲外です</red>'
+  negative: '<red>0 以外の正しい値を指定してください (半径は 0 以上)</red>'
+  radius-limit: '<red>半径の上限は <max> です</red>'
+  group-limit: '<red>1 グループの上限は <max> チャンクです (今回 <chunks>)</red>'
+  total-limit: '<red>サーバー全体の上限 <max> チャンクを超えます (現在 <now>)</red>'
+  player-limit: '<red>1 人あたりのグループ数の上限は <max> です</red>'
+  not-registered-here: '<red>今いるチャンクはどのグループにも登録されていません</red>'
+  usage: '<red>使い方: <usage></red>'
+  tp-failed: '<red>移動に失敗しました</red>'
+  too-small: '<red>これ以上縮められません</red>'
+  other-world: '<red>別のワールドのグループは広げられません</red>'
+
+here:
+  title: 'チャンク <x>, <z>'
+  no-tickets: 'なし'
+  unregistered: '<gray>未登録</gray>'
+  registered: '<green>登録済み</green>'
+  group: '<white><name></white> <dark_gray>(<chunks> チャンク)</dark_gray>'
+
+remove:
+  pick: '今いるチャンクは複数のグループに含まれています。削除するものを選んでください'
+  confirm: '<white><name></white> (<chunks> チャンク) を削除しますか?'
+
+list:
+  empty: '<gray>登録されたグループはありません。<white>/acl add</white> で今いるチャンクを登録できます</gray>'
+  title: 'グループ一覧 <dark_gray>(<count> 件 / <chunks> チャンク)</dark_gray>'
+  row: '<white><name></white> <dark_gray>[<world> (<x>, <z>) <w>×<d>=<chunks>]</dark_gray>'
+  row-inactive: '<gray><name></gray> <dark_gray>[<world> 未ロード]</dark_gray>'
+  footer: '<dark_gray> </dark_gray><prev> <gray><page>/<pages></gray> <next>'
+
+info:
+  title: '<name>'
+  world-missing: '(未ロード)'
+  range: 'チャンク <x1>,<z1> 〜 <x2>,<z2> <dark_gray>(<w>×<d> = <chunks>)</dark_gray>'
+  level-count: '<level> <dark_gray><n>/<total></dark_gray>'
+  inactive: '<red>チケット未適用 (ワールドが未ロード)</red>'
+
+pos:
+  ready: '<gray>2 点そろいました</gray>'
+
+help:
+  title: 'AutoChunkLoader <dark_gray>v<version></dark_gray>'
+  row: '<aqua><cmd></aqua> <dark_gray>-</dark_gray> <gray><desc></gray>'
+  cmd:
+    here: '/acl here'
+    add: '/acl add [名前] [半径]'
+    add-range: '/acl add <名前> <x1> <y1> <z1> <x2> <y2> <z2>'
+    remove: '/acl remove [名前]'
+    list: '/acl list [ページ]'
+    info: '/acl info [名前]'
+    tp: '/acl tp <名前>'
+    resize: '/acl resize <名前> <±n>'
+    expand: '/acl expand [名前]'
+    rename: '/acl rename <旧> <新>'
+    pos: '/acl pos1 | pos2'
+    inspector: '/acl inspector (i)'
+    reload: '/acl reload'
+  desc:
+    here: '今いるチャンクの状態 (登録・グループ・ロードレベル)'
+    add: '今いるチャンクを登録 (名前省略で自動命名)'
+    add-range: 'ブロック座標 2 点の範囲を 1 グループに (~ 可、y は無視、末尾に sel で pos1/pos2)'
+    remove: 'グループ削除 (名前省略で今いるチャンクのもの)'
+    list: '一覧 (クリックで info / tp / 削除)'
+    info: 'グループの詳細'
+    tp: 'グループの中心へ移動'
+    resize: '全方向に n チャンク広げる / 縮める'
+    expand: '今いるチャンクを含むように広げる'
+    rename: '名前を変更'
+    pos: '範囲選択の 2 点を今の位置に設定'
+    inspector: 'ロード維持中チャンクの外周を表示 (自分だけ)'
+    reload: '設定と言語ファイルを再読み込み'

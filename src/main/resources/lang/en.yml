@@ -1,0 +1,173 @@
+# AutoChunkLoader English (MiniMessage)
+prefix: '<gradient:#4ade80:#22d3ee><b>ACL</b></gradient> <dark_gray>»</dark_gray> '
+mark:
+  ok: '<green>✔</green> '
+  err: '<red>✘</red> '
+owner:
+  console: 'Console'
+
+ui:
+  rule: '<dark_gray>━━━━━</dark_gray> <gradient:#4ade80:#22d3ee><title></gradient> <dark_gray>━━━━━━━━━━━━━━</dark_gray>'
+  rule-end: '<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</dark_gray>'
+  indent: '<dark_gray> ▸ </dark_gray>'
+
+row: '<dark_gray> │</dark_gray> <gray><k></gray> <dark_gray>:</dark_gray> <white><v></white>'
+
+lbl:
+  world: 'World'
+  range: 'Range'
+  block-range: 'Block range'
+  center: 'Center'
+  owner: 'Owner'
+  created: 'Created'
+  level: 'Load level'
+  tickets: 'Tickets'
+  status: 'Status'
+
+level:
+  inaccessible: 'INACCESSIBLE'
+  border: 'BORDER'
+  ticking: 'TICKING'
+  entity_ticking: 'ENTITY_TICKING'
+  unloaded: 'UNLOADED'
+  fmt:
+    inaccessible: '<red><level></red>'
+    border: '<gold><level></gold>'
+    ticking: '<yellow><level></yellow>'
+    entity_ticking: '<green><level></green>'
+    unloaded: '<dark_gray><level></dark_gray>'
+
+btn:
+  help: '<gray>[</gray><aqua>Help</aqua><gray>]</gray>'
+  info: '<gray>[</gray><aqua>info</aqua><gray>]</gray>'
+  tp: '<gray>[</gray><green>tp</green><gray>]</gray>'
+  remove: '<gray>[</gray><red>delete</red><gray>]</gray>'
+  remove-named: '<gray>[</gray><red>delete: <name></red><gray>]</gray>'
+  confirm: '<gray>[</gray><red><b>Really delete</b></red><gray>]</gray>'
+  add-here: '<gray>[</gray><green>Add this chunk</green><gray>]</gray>'
+  add-sel: '<gray>[</gray><green>Add selection</green><gray>]</gray>'
+  inspector: '<gray>[</gray><yellow>outline</yellow><gray>]</gray>'
+  grow: '<gray>[</gray><green>+1</green><gray>]</gray>'
+  shrink: '<gray>[</gray><gold>-1</gold><gray>]</gray>'
+  rename: '<gray>[</gray><light_purple>rename</light_purple><gray>]</gray>'
+  prev: '<gray>[</gray><aqua>◀ prev</aqua><gray>]</gray>'
+  next: '<gray>[</gray><aqua>next ▶</aqua><gray>]</gray>'
+  prev-off: '<dark_gray>[◀ prev]</dark_gray>'
+  next-off: '<dark_gray>[next ▶]</dark_gray>'
+
+hover:
+  help: '<aqua>Show all commands</aqua>'
+  info: '<aqua>Show group details</aqua>'
+  tp: '<green>Teleport to the group center</green>'
+  remove: '<red>Delete the group (asks first if it has several chunks)</red>'
+  confirm: '<red>Click to delete</red>'
+  add-here: '<green>Register the chunk you are standing in</green>'
+  add-sel: '<green>Register the pos1-pos2 area</green>'
+  inspector: '<yellow>Toggle the outline of kept chunks</yellow>'
+  grow: '<green>Grow by 1 chunk on every side</green>'
+  shrink: '<gold>Shrink by 1 chunk on every side</gold>'
+  rename: '<light_purple>Put the rename command in the chat box</light_purple>'
+  prev: '<aqua>Previous page</aqua>'
+  next: '<aqua>Next page</aqua>'
+  suggest: '<gray>Click to put it in the chat box</gray>'
+
+ok:
+  added: 'Added <white><name></white> <dark_gray>(<chunks> chunks / <world>)</dark_gray>'
+  removed: 'Removed <white><name></white> and released its tickets <dark_gray>(<chunks> chunks)</dark_gray>'
+  teleported: 'Teleported to <white><name></white>'
+  resized: 'Resized <white><name></white> to <white><w>×<d></white> <dark_gray>(<chunks> chunks)</dark_gray>'
+  expanded: 'Expanded <white><name></white> to include this chunk <dark_gray>(<w>×<d> / <chunks> chunks)</dark_gray>'
+  renamed: 'Renamed <white><old></white> → <white><name></white>'
+  pos1: 'pos1 set to <white>(<x>, <z>)</white>'
+  pos2: 'pos2 set to <white>(<x>, <z>)</white>'
+  inspector-on: 'Outline <green>ON</green>. Only you can see the border of kept chunks'
+  inspector-off: 'Outline <red>OFF</red>'
+  reloaded: 'Config and language files reloaded'
+
+err:
+  unknown-sub: '<red>Unknown subcommand: <sub></red>'
+  no-permission: '<red>You do not have permission</red>'
+  player-only: '<red>Run this as a player</red>'
+  no-such-group: '<red>No group named <name></red>'
+  not-owner: '<red><name> is not your group</red>'
+  not-a-number: '<red>Invalid <what>: <value></red>'
+  relative-needs-player: '<red>~ only works for players</red>'
+  bad-name: '<red>Names use letters, digits, - and _ only (1-32 chars, at least one letter)</red>'
+  name-taken: '<red>The name <name> is already used</red>'
+  reserved-name: '<red><name> clashes with a command name</red>'
+  no-such-world: '<red>World <world> not found</red>'
+  sel-missing: '<red>Set two points with /acl pos1 and /acl pos2 first</red>'
+  sel-world: '<red>pos1 and pos2 are in different worlds</red>'
+  console-world: '<red>The console must give a world (add <name> <x> <z> <radius> <world>)</red>'
+  add-usage: '<red>Usage: /acl add [name] [radius] | /acl add <name> <x> <z> [radius] [world] | /acl add <name> <x1> <y1> <z1> <x2> <y2> <z2> [world] | /acl add <name> sel</red>'
+  out-of-range: '<red>Coordinates are outside the world</red>'
+  negative: '<red>Invalid value (radius must be 0 or more, amount must not be 0)</red>'
+  radius-limit: '<red>Max radius is <max></red>'
+  group-limit: '<red>One group may hold at most <max> chunks (this one: <chunks>)</red>'
+  total-limit: '<red>Would exceed the server-wide limit of <max> chunks (now <now>)</red>'
+  player-limit: '<red>You can own at most <max> groups</red>'
+  not-registered-here: '<red>This chunk is not in any group</red>'
+  usage: '<red>Usage: <usage></red>'
+  tp-failed: '<red>Teleport failed</red>'
+  too-small: '<red>Cannot shrink any further</red>'
+  other-world: '<red>That group is in another world</red>'
+
+here:
+  title: 'Chunk <x>, <z>'
+  no-tickets: 'none'
+  unregistered: '<gray>not registered</gray>'
+  registered: '<green>registered</green>'
+  group: '<white><name></white> <dark_gray>(<chunks> chunks)</dark_gray>'
+
+remove:
+  pick: 'This chunk is in several groups. Pick one to delete'
+  confirm: 'Delete <white><name></white> (<chunks> chunks)?'
+
+list:
+  empty: '<gray>No groups yet. Use <white>/acl add</white> to register the chunk you are in</gray>'
+  title: 'Groups <dark_gray>(<count> / <chunks> chunks)</dark_gray>'
+  row: '<white><name></white> <dark_gray>[<world> (<x>, <z>) <w>×<d>=<chunks>]</dark_gray>'
+  row-inactive: '<gray><name></gray> <dark_gray>[<world> not loaded]</dark_gray>'
+  footer: '<dark_gray> </dark_gray><prev> <gray><page>/<pages></gray> <next>'
+
+info:
+  title: '<name>'
+  world-missing: '(not loaded)'
+  range: 'chunks <x1>,<z1> to <x2>,<z2> <dark_gray>(<w>×<d> = <chunks>)</dark_gray>'
+  level-count: '<level> <dark_gray><n>/<total></dark_gray>'
+  inactive: '<red>No tickets held (world not loaded)</red>'
+
+pos:
+  ready: '<gray>Both points set</gray>'
+
+help:
+  title: 'AutoChunkLoader <dark_gray>v<version></dark_gray>'
+  row: '<aqua><cmd></aqua> <dark_gray>-</dark_gray> <gray><desc></gray>'
+  cmd:
+    here: '/acl here'
+    add: '/acl add [name] [radius]'
+    add-range: '/acl add <name> <x1> <y1> <z1> <x2> <y2> <z2>'
+    remove: '/acl remove [name]'
+    list: '/acl list [page]'
+    info: '/acl info [name]'
+    tp: '/acl tp <name>'
+    resize: '/acl resize <name> <+n|-n>'
+    expand: '/acl expand [name]'
+    rename: '/acl rename <old> <new>'
+    pos: '/acl pos1 | pos2'
+    inspector: '/acl inspector (i)'
+    reload: '/acl reload'
+  desc:
+    here: 'State of this chunk (registered, groups, load level)'
+    add: 'Register this chunk (name optional, auto-named)'
+    add-range: 'Two block positions -> one group (~ ok, y ignored, "sel" uses pos1/pos2)'
+    remove: 'Delete a group (no name = the one here)'
+    list: 'List groups (click info / tp / delete)'
+    info: 'Group details'
+    tp: 'Teleport to the group center'
+    resize: 'Grow / shrink by n chunks on every side'
+    expand: 'Grow to include this chunk'
+    rename: 'Rename a group'
+    pos: 'Set a selection corner at your position'
+    inspector: 'Show the outline of kept chunks (only you)'
+    reload: 'Reload config and language files'
