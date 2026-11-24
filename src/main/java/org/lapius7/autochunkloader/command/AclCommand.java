@@ -246,11 +246,14 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     }
 
     private String autoName(int x1, int z1, int x2, int z2) {
-        String base = (x1 == x2 && z1 == z2) ? "chunk-" + x1 + "_" + z1 : "area-" + x1 + "_" + z1;
+        String base = ((x1 == x2 && z1 == z2) ? "chunk_" : "area_") + nc(x1) + "_" + nc(z1);
         String n = base;
         for (int i = 2; mgr.get(n) != null; i++) n = base + "-" + i;
         return n;
     }
+
+    /** Name-safe coordinate: -3 becomes n3. */
+    private static String nc(int v) { return v < 0 ? "n" + (-v) : Integer.toString(v); }
 
     private void checkRadius(CommandSender s, int r) {
         if (r < 0) throw fail("err.negative");
@@ -283,7 +286,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
 
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("here.title", p("x", x), p("z", z))));
-        lines.add(m().text("row", p("k", m().raw("lbl.world")), c("v", Component.text(w.getName()))));
+        lines.add(m().text("row", p("k", m().raw("lbl.world")), c("v", dim(w.getName()))));
         lines.add(m().text("row", p("k", m().raw("lbl.block-range")),
                 c("v", Component.text((x * 16) + ".." + (x * 16 + 15) + " / " + (z * 16) + ".." + (z * 16 + 15)))));
         if (ch != null) {
@@ -369,7 +372,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         for (ChunkGroup g : all.subList((page - 1) * size, Math.min(all.size(), page * size))) {
             Component row = Component.empty().append(m().text("ui.indent"))
                     .append(m().text(g.active() ? "list.row" : "list.row-inactive",
-                            p("name", g.name()), p("world", g.world()),
+                            p("name", g.name()), c("world", dim(g.world())),
                             p("x", g.centerX()), p("z", g.centerZ()), p("chunks", g.chunkCount()),
                             p("w", g.width()), p("d", g.depth())))
                     .append(Component.space()).append(m().button("btn.info", "hover.info", "/acl info " + g.name(), true));
@@ -444,6 +447,29 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     }
 
     // =================================================================== tp
+    /** World name coloured by dimension: overworld green, nether red, end purple, other aqua, not loaded gray. */
+    private static Component dim(String name) {
+        World w = Bukkit.getWorld(name);
+        net.kyori.adventure.text.format.NamedTextColor col = w == null ? net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY
+                : switch (w.getEnvironment()) {
+                    case NORMAL -> net.kyori.adventure.text.format.NamedTextColor.GREEN;
+                    case NETHER -> net.kyori.adventure.text.format.NamedTextColor.RED;
+                    case THE_END -> net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE;
+                    default -> net.kyori.adventure.text.format.NamedTextColor.AQUA;
+                };
+        return Component.text(name, col);
+    }
+
+    /** Standing height for tp: nether-like (no sky, ceiling) worlds scan down for air above a solid block. */
+    private static int safeY(World w, int x, int z) {
+        if (!w.hasCeiling()) return w.getHighestBlockYAt(x, z) + 1;
+        int top = Math.min(w.getMaxHeight() - 1, w.getLogicalHeight() - 1);
+        for (int y = top; y > w.getMinHeight(); y--)
+            if (w.getBlockAt(x, y, z).isPassable() && w.getBlockAt(x, y + 1, z).isPassable()
+                    && w.getBlockAt(x, y - 1, z).isSolid()) return y;
+        return w.getHighestBlockYAt(x, z) + 1;
+    }
+
     private void tp(CommandSender s, String[] a) {
         Player p = player(s);
         if (a.length == 0) throw fail("err.usage", p("usage", "/acl tp <name>"));
@@ -451,7 +477,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         World w = Bukkit.getWorld(g.world());
         if (w == null) throw fail("err.no-such-world", p("world", g.world()));
         int bx = g.centerX() * 16 + 8, bz = g.centerZ() * 16 + 8;
-        int y = w.getHighestBlockYAt(bx, bz) + 1;
+        int y = safeY(w, bx, bz);
         Location dest = new Location(w, bx + 0.5, y, bz + 0.5, p.getLocation().getYaw(), p.getLocation().getPitch());
         p.teleportAsync(dest).thenAccept(ok -> {
             if (ok) p.sendMessage(m().ok("ok.teleported", p("name", g.name())));
