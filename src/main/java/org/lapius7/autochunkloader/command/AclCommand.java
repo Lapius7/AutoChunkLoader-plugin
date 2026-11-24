@@ -35,6 +35,9 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUBS = List.of("help", "add", "here", "remove", "list", "info", "tp", "resize",
             "expand", "rename", "pos1", "pos2", "inspector", "i", "reload");
 
+    private static final Set<String> RESERVED = Set.of("sel", "selection", "chunk", "confirm");
+    private static final Pattern COORD_TOKEN = Pattern.compile("~(-?\\d+)?|-?\\d+");
+
     private record Sel(String world, int x, int z) { }
 
     private final AutoChunkLoaderPlugin plugin;
@@ -146,7 +149,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private void checkName(String name) {
         if (!NAME.matcher(name).matches() || !HAS_LETTER.matcher(name).matches()) throw fail("err.bad-name");
         if (mgr.get(name) != null) throw fail("err.name-taken", p("name", name));
-        if (SUBS.contains(name.toLowerCase(Locale.ROOT)) || name.equalsIgnoreCase("sel"))
+        if (SUBS.contains(name.toLowerCase(Locale.ROOT)) || RESERVED.contains(name.toLowerCase(Locale.ROOT)))
             throw fail("err.reserved-name", p("name", name));
     }
 
@@ -170,6 +173,10 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
 
     // =================================================================== add
     private void add(CommandSender s, String[] a) {
+        if (a.length > 0 && (a[0].equalsIgnoreCase("here") || a[0].equalsIgnoreCase("chunk"))) {
+            addChunk(s, Arrays.copyOfRange(a, 1, a.length));
+            return;
+        }
         UUID owner = s instanceof Player pl ? pl.getUniqueId() : ChunkGroup.NO_OWNER;
         Player pl = s instanceof Player p0 ? p0 : null;
         String name;
@@ -238,8 +245,9 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         if (name == null) name = autoName(Math.min(x1, x2), Math.min(z1, z2), Math.max(x1, x2), Math.max(z1, z2));
         else checkName(name);
 
+        long count = ((long) Math.abs(x2 - x1) + 1) * (Math.abs(z2 - z1) + 1);
+        checkCounts(s, count, 0, true);
         ChunkGroup grp = new ChunkGroup(name, world, x1, z1, x2, z2, owner, null);
-        checkLimits(s, grp, null);
         mgr.add(grp);
         s.sendMessage(m().ok("ok.added", p("name", grp.name()), p("chunks", grp.chunkCount()), p("world", world))
                 .append(Component.space()).append(m().button("btn.info", "hover.info", "/acl info " + grp.name(), true)));
@@ -261,19 +269,86 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         if (r > max && !isAdmin(s)) throw fail("err.radius-limit", p("max", max));
     }
 
-    /** Group-size, total, and per-player limits. {@code old} is the existing group when resizing. */
-    private void checkLimits(CommandSender s, ChunkGroup g, ChunkGroup old) {
+    /** Group-size, total, and per-player limits. {@code oldCount} is the group's current size when changing one. */
+    private void checkCounts(CommandSender s, long newCount, long oldCount, boolean isNew) {
         if (isAdmin(s)) return;
         var cfg = plugin.getConfig();
         int perGroup = cfg.getInt("limits.max-chunks-per-group", 100);
-        if (g.chunkCount() > perGroup) throw fail("err.group-limit", p("max", perGroup), p("chunks", g.chunkCount()));
+        if (newCount > perGroup) throw fail("err.group-limit", p("max", perGroup), p("chunks", (int) Math.min(newCount, Integer.MAX_VALUE)));
         int total = cfg.getInt("limits.max-chunks-total", 200);
-        int after = mgr.totalChunks() - (old != null ? old.chunkCount() : 0) + g.chunkCount();
-        if (after > total) throw fail("err.total-limit", p("max", total), p("now", mgr.totalChunks()));
-        if (old == null && s instanceof Player pl) {
+        if (mgr.totalChunks() - oldCount + newCount > total) throw fail("err.total-limit", p("max", total), p("now", mgr.totalChunks()));
+        if (isNew && s instanceof Player pl) {
             int maxG = cfg.getInt("limits.max-groups-per-player", 5);
             if (mgr.countOwnedBy(pl.getUniqueId()) >= maxG) throw fail("err.player-limit", p("max", maxG));
         }
+    }
+
+    // =================================================================== single chunk add / remove
+    /** Chunk target: optional group name, then optional "x z" (chunk coordinates, ~ ok). */
+    private record Target(ChunkGroup g, String world, int x, int z) { }
+
+    private Target target(CommandSender s, String[] a) {
+        int i = 0;
+        ChunkGroup g = null;
+        if (a.length > 0 && !COORD_TOKEN.matcher(a[0]).matches()) { g = group(a[0]); i = 1; }
+        int left = a.length - i;
+        if (left != 0 && left != 2) throw fail("err.chunk-usage");
+        if (left == 2) {
+            Player pl = s instanceof Player p0 ? p0 : null;
+            int bx = pl != null ? cx(pl.getLocation()) : 0, bz = pl != null ? cz(pl.getLocation()) : 0;
+            int x = coord(s, a[i], bx, pl != null, "x"), z = coord(s, a[i + 1], bz, pl != null, "z");
+            if (Math.max(Math.abs(x), Math.abs(z)) > MAX_CHUNK_COORD) throw fail("err.out-of-range");
+            String world = g != null ? g.world() : player(s).getWorld().getName();
+            return new Target(g, world, x, z);
+        }
+        Player p = player(s);
+        if (g != null && !g.world().equals(p.getWorld().getName())) throw fail("err.other-world");
+        return new Target(g, p.getWorld().getName(), cx(p.getLocation()), cz(p.getLocation()));
+    }
+
+    /** /acl add here|chunk <name> [x z] : add one chunk to an existing group. */
+    private void addChunk(CommandSender s, String[] a) {
+        Target t = target(s, a);
+        if (t.g == null) throw fail("err.add-chunk-usage");
+        ChunkGroup g = t.g;
+        checkOwner(s, g);
+        if (g.contains(g.world(), t.x, t.z)) throw fail("err.chunk-already-in", p("name", g.name()), p("x", t.x), p("z", t.z));
+        checkCounts(s, g.chunkCount() + 1L, g.chunkCount(), false);
+        mgr.addChunk(g, t.x, t.z);
+        s.sendMessage(m().ok("ok.chunk-added", p("name", g.name()), p("x", t.x), p("z", t.z), p("chunks", g.chunkCount()))
+                .append(Component.space()).append(m().button("btn.info", "hover.info", "/acl info " + g.name(), true)));
+    }
+
+    /** /acl remove here|chunk [name] [x z] : take one chunk out of a group. */
+    private void removeChunk(CommandSender s, String[] a) {
+        Target t = target(s, a);
+        ChunkGroup g = t.g;
+        if (g == null) {
+            List<ChunkGroup> gs = mgr.groupsAt(t.world, t.x, t.z);
+            if (gs.isEmpty()) throw fail("err.not-registered-here");
+            if (gs.size() > 1) {
+                List<Component> parts = new ArrayList<>();
+                parts.add(m().info("remove.pick-chunk"));
+                for (ChunkGroup x : gs) parts.add(Component.empty().append(m().text("ui.indent"))
+                        .append(m().button("btn.remove-chunk-named", "hover.remove-chunk",
+                                "/acl remove chunk " + x.name() + " " + t.x + " " + t.z, true, p("name", x.name()))));
+                send(s, parts);
+                return;
+            }
+            g = gs.get(0);
+        }
+        checkOwner(s, g);
+        if (!g.contains(g.world(), t.x, t.z)) throw fail("err.chunk-not-in", p("name", g.name()), p("x", t.x), p("z", t.z));
+        if (g.chunkCount() == 1) {
+            mgr.remove(g);
+            s.sendMessage(m().ok("ok.chunk-removed-last", p("name", g.name()), p("x", t.x), p("z", t.z)));
+            return;
+        }
+        mgr.removeChunk(g, t.x, t.z);
+        Component msg = m().ok("ok.chunk-removed", p("name", g.name()), p("x", t.x), p("z", t.z), p("chunks", g.chunkCount()));
+        int regions = g.regions();
+        if (regions > 1) msg = msg.append(Component.space()).append(m().text("ok.split", p("regions", regions)));
+        s.sendMessage(msg.append(Component.space()).append(m().button("btn.info", "hover.info", "/acl info " + g.name(), true)));
     }
 
     // =================================================================== here
@@ -300,8 +375,13 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         }
         if (gs.isEmpty()) {
             lines.add(m().text("row", p("k", m().raw("lbl.status")), c("v", m().text("here.unregistered"))));
-            if (has(s, "manage") || isAdmin(s)) lines.add(Component.empty().append(m().text("ui.indent"))
-                    .append(m().button("btn.add-here", "hover.add-here", "/acl add", true)));
+            if (has(s, "manage") || isAdmin(s)) {
+                Component r = Component.empty().append(m().text("ui.indent"))
+                        .append(m().button("btn.add-here", "hover.add-here", "/acl add", true));
+                if (mgr.all().stream().anyMatch(g -> canManage(s, g) && g.world().equals(w.getName())))
+                    r = r.append(Component.space()).append(m().button("btn.add-chunk", "hover.add-chunk", "/acl add chunk ", false));
+                lines.add(r);
+            }
         } else {
             lines.add(m().text("row", p("k", m().raw("lbl.status")), c("v", m().text("here.registered"))));
             for (ChunkGroup g : gs) {
@@ -309,6 +389,8 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                         .append(m().text("here.group", p("name", g.name()), p("chunks", g.chunkCount())))
                         .append(Component.space()).append(m().button("btn.info", "hover.info", "/acl info " + g.name(), true))
                         .append(Component.space()).append(m().button("btn.remove", "hover.remove", "/acl remove " + g.name(), true));
+                if (canManage(s, g)) row = row.append(Component.space())
+                        .append(m().button("btn.remove-chunk", "hover.remove-chunk", "/acl remove chunk " + g.name() + " " + x + " " + z, true));
                 lines.add(row);
             }
         }
@@ -326,6 +408,10 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
 
     // =================================================================== remove
     private void remove(CommandSender s, String[] a) {
+        if (a.length > 0 && (a[0].equalsIgnoreCase("here") || a[0].equalsIgnoreCase("chunk"))) {
+            removeChunk(s, Arrays.copyOfRange(a, 1, a.length));
+            return;
+        }
         ChunkGroup g;
         if (a.length == 0) {
             Player p = player(s);
@@ -371,14 +457,19 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         boolean canTp = s instanceof Player && has(s, "tp");
         for (ChunkGroup g : all.subList((page - 1) * size, Math.min(all.size(), page * size))) {
             Component row = Component.empty().append(m().text("ui.indent"))
-                    .append(m().text(g.active() ? "list.row" : "list.row-inactive",
+                    .append(m().text(!g.active() ? "list.row-inactive" : g.isRectangle() ? "list.row" : "list.row-shape",
                             p("name", g.name()), c("world", dim(g.world())),
                             p("x", g.centerX()), p("z", g.centerZ()), p("chunks", g.chunkCount()),
                             p("w", g.width()), p("d", g.depth())))
                     .append(Component.space()).append(m().button("btn.info", "hover.info", "/acl info " + g.name(), true));
             if (canTp) row = row.append(Component.space()).append(m().button("btn.tp", "hover.tp", "/acl tp " + g.name(), true));
-            if (canManage(s, g)) row = row.append(Component.space())
-                    .append(m().button("btn.remove", "hover.remove", "/acl remove " + g.name(), true));
+            if (canManage(s, g)) {
+                row = row.append(Component.space())
+                        .append(m().button("btn.remove", "hover.remove", "/acl remove " + g.name(), true));
+                if (s instanceof Player) row = row.append(Component.space())
+                        .append(m().button("btn.chunk-add", "hover.chunk-add", "/acl add chunk " + g.name(), true))
+                        .append(m().button("btn.chunk-remove", "hover.chunk-remove", "/acl remove chunk " + g.name(), true));
+            }
             lines.add(row);
         }
         Component prev = page > 1 ? m().button("btn.prev", "hover.prev", "/acl list " + (page - 1), true) : m().text("btn.prev-off");
@@ -409,9 +500,9 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("info.title", p("name", g.name()))));
         lines.add(m().text("row", p("k", m().raw("lbl.world")), c("v", Component.text(g.world() + (w == null ? " " + m().raw("info.world-missing") : "")))));
-        lines.add(m().text("row", p("k", m().raw("lbl.range")), c("v", m().text("info.range",
+        lines.add(m().text("row", p("k", m().raw("lbl.range")), c("v", m().text(g.isRectangle() ? "info.range" : "info.range-shape",
                 p("x1", g.minX()), p("z1", g.minZ()), p("x2", g.maxX()), p("z2", g.maxZ()),
-                p("w", g.width()), p("d", g.depth()), p("chunks", g.chunkCount())))));
+                p("w", g.width()), p("d", g.depth()), p("chunks", g.chunkCount()), p("regions", g.regions())))));
         lines.add(m().text("row", p("k", m().raw("lbl.block-range")), c("v", Component.text(
                 (g.minX() * 16) + ".." + (g.maxX() * 16 + 15) + " / " + (g.minZ() * 16) + ".." + (g.maxZ() * 16 + 15)))));
         lines.add(m().text("row", p("k", m().raw("lbl.center")), c("v", Component.text(g.centerX() + ", " + g.centerZ()))));
@@ -420,11 +511,11 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
 
         if (w != null && g.active()) {
             EnumMap<Chunk.LoadLevel, Integer> count = new EnumMap<>(Chunk.LoadLevel.class);
-            for (int x = g.minX(); x <= g.maxX(); x++)
-                for (int z = g.minZ(); z <= g.maxZ(); z++) {
-                    Chunk.LoadLevel lv = w.isChunkLoaded(x, z) ? w.getChunkAt(x, z, false).getLoadLevel() : Chunk.LoadLevel.UNLOADED;
-                    count.merge(lv, 1, Integer::sum);
-                }
+            for (long k : g.chunks()) {
+                int x = GroupManager.unpackX(k), z = GroupManager.unpackZ(k);
+                Chunk.LoadLevel lv = w.isChunkLoaded(x, z) ? w.getChunkAt(x, z, false).getLoadLevel() : Chunk.LoadLevel.UNLOADED;
+                count.merge(lv, 1, Integer::sum);
+            }
             List<Component> parts = new ArrayList<>();
             count.forEach((lv, n) -> parts.add(m().text("info.level-count", c("level", levelComp(lv)), p("n", n), p("total", g.chunkCount()))));
             lines.add(m().text("row", p("k", m().raw("lbl.level")), c("v", Component.join(JoinConfiguration.separator(Component.text("  ")), parts))));
@@ -440,6 +531,9 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                     .append(m().button("btn.shrink", "hover.shrink", "/acl resize " + g.name() + " -1", true)).append(Component.space())
                     .append(m().button("btn.rename", "hover.rename", "/acl rename " + g.name() + " ", false)).append(Component.space())
                     .append(m().button("btn.remove", "hover.remove", "/acl remove " + g.name(), true));
+            if (s instanceof Player) btns = btns.append(Component.space())
+                    .append(m().button("btn.chunk-add", "hover.chunk-add", "/acl add chunk " + g.name(), true)).append(Component.space())
+                    .append(m().button("btn.chunk-remove", "hover.chunk-remove", "/acl remove chunk " + g.name(), true));
         }
         lines.add(btns);
         lines.add(rule());
@@ -476,7 +570,8 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         ChunkGroup g = group(a[0]);
         World w = Bukkit.getWorld(g.world());
         if (w == null) throw fail("err.no-such-world", p("world", g.world()));
-        int bx = g.centerX() * 16 + 8, bz = g.centerZ() * 16 + 8;
+        long anc = g.anchor();
+        int bx = GroupManager.unpackX(anc) * 16 + 8, bz = GroupManager.unpackZ(anc) * 16 + 8;
         int y = safeY(w, bx, bz);
         Location dest = new Location(w, bx + 0.5, y, bz + 0.5, p.getLocation().getYaw(), p.getLocation().getPitch());
         p.teleportAsync(dest).thenAccept(ok -> {
@@ -491,9 +586,11 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         ChunkGroup g = ownGroup(s, a[0]);
         int d = parseInt(a[1].startsWith("+") ? a[1].substring(1) : a[1], "amount");
         if (d == 0) throw fail("err.negative");
-        int x1 = g.minX() - d, z1 = g.minZ() - d, x2 = g.maxX() + d, z2 = g.maxZ() + d;
-        if (x1 > x2 || z1 > z2) throw fail("err.too-small");
-        applyBounds(s, g, x1, z1, x2, z2);
+        if (!isAdmin(s) && d > 0 && (long) (g.width() + 2L * d) * (g.depth() + 2L * d) > 1_000_000L)
+            throw fail("err.group-limit", p("max", plugin.getConfig().getInt("limits.max-chunks-per-group", 100)), p("chunks", 1_000_000));
+        Set<Long> next = g.resized(d);
+        if (next.isEmpty()) throw fail("err.too-small");
+        applyChunks(s, g, next);
         s.sendMessage(m().ok("ok.resized", p("name", g.name()), p("w", g.width()), p("d", g.depth()), p("chunks", g.chunkCount())));
     }
 
@@ -510,15 +607,18 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         }
         if (!g.world().equals(pl.getWorld().getName())) throw fail("err.other-world");
         int x = cx(pl.getLocation()), z = cz(pl.getLocation());
-        applyBounds(s, g, Math.min(g.minX(), x), Math.min(g.minZ(), z), Math.max(g.maxX(), x), Math.max(g.maxZ(), z));
+        int x1 = Math.min(g.minX(), x), z1 = Math.min(g.minZ(), z), x2 = Math.max(g.maxX(), x), z2 = Math.max(g.maxZ(), z);
+        checkCounts(s, ((long) x2 - x1 + 1) * (z2 - z1 + 1), g.chunkCount(), false);
+        ChunkGroup probe = new ChunkGroup("probe", g.world(), x1, z1, x2, z2, g.owner(), null);
+        applyChunks(s, g, probe.chunks());
         s.sendMessage(m().ok("ok.expanded", p("name", g.name()), p("w", g.width()), p("d", g.depth()), p("chunks", g.chunkCount())));
     }
 
-    private void applyBounds(CommandSender s, ChunkGroup g, int x1, int z1, int x2, int z2) {
-        ChunkGroup probe = new ChunkGroup("probe", g.world(), x1, z1, x2, z2, g.owner(), null);
-        if (Math.max(Math.max(Math.abs(x1), Math.abs(x2)), Math.max(Math.abs(z1), Math.abs(z2))) > MAX_CHUNK_COORD) throw fail("err.out-of-range");
-        checkLimits(s, probe, g);
-        mgr.resize(g, probe.minX(), probe.minZ(), probe.maxX(), probe.maxZ());
+    private void applyChunks(CommandSender s, ChunkGroup g, Set<Long> chunks) {
+        for (long k : chunks)
+            if (Math.max(Math.abs(GroupManager.unpackX(k)), Math.abs(GroupManager.unpackZ(k))) > MAX_CHUNK_COORD) throw fail("err.out-of-range");
+        checkCounts(s, chunks.size(), g.chunkCount(), false);
+        mgr.replaceChunks(g, chunks);
     }
 
     // =================================================================== rename
@@ -564,7 +664,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private void help(CommandSender s) {
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("help.title", p("version", plugin.getPluginMeta().getVersion()))));
-        for (String k : new String[]{"here", "add", "add-range", "remove", "list", "info", "tp", "resize", "expand", "rename", "pos", "inspector", "reload"}) {
+        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "tp", "resize", "expand", "rename", "pos", "inspector", "reload"}) {
             String cmd = m().raw("help.cmd." + k);
             lines.add(Component.empty().append(m().text("ui.indent")).append(
                     m().text("help.row", p("cmd", cmd), p("desc", m().raw("help.desc." + k)))
@@ -599,8 +699,11 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
             case "add" -> {
                 if (!(has(s, "manage") || isAdmin(s))) return List.of();
                 int g = i - 1; // geometry arg index after the name
-                if (g == 0) out.addAll(List.of("<name>", "sel", "0", "1", "2"));
-                else if (!a[1].equalsIgnoreCase("sel")) {
+                if (g == 0) out.addAll(List.of("<name>", "here", "chunk", "sel", "0", "1", "2"));
+                else if (a[1].equalsIgnoreCase("here") || a[1].equalsIgnoreCase("chunk")) {
+                    if (i == 2) out.addAll(names(s, true));
+                    else chunkCoords(out, pl, i - 3);
+                } else if (!a[1].equalsIgnoreCase("sel")) {
                     out.add("~");
                     if (pl != null) {
                         Location l = pl.getLocation();
@@ -613,8 +716,12 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "remove", "rm", "delete", "del" -> {
-                if (i == 1) out.addAll(names(s, true));
-                else if (i == 2) out.add("confirm");
+                if (i == 1) { out.addAll(names(s, true)); out.addAll(List.of("here", "chunk")); }
+                else if (a[1].equalsIgnoreCase("here") || a[1].equalsIgnoreCase("chunk")) {
+                    boolean named = a.length > 2 && !COORD_TOKEN.matcher(a[2]).matches() && i > 2;
+                    if (i == 2) { out.addAll(names(s, true)); chunkCoords(out, pl, 0); }
+                    else chunkCoords(out, pl, named ? i - 3 : i - 2);
+                } else if (i == 2) out.add("confirm");
             }
             case "info", "tp" -> { if (i == 1) out.addAll(names(s, false)); }
             case "resize" -> {
@@ -633,6 +740,13 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
             default -> { }
         }
         return filter(out, cur);
+    }
+
+    /** Candidates for the x (idx 0) / z (idx 1) chunk coordinate. */
+    private void chunkCoords(List<String> out, Player pl, int idx) {
+        if (idx < 0 || idx > 1) return;
+        out.add("~");
+        if (pl != null) out.add(String.valueOf(idx == 0 ? cx(pl.getLocation()) : cz(pl.getLocation())));
     }
 
     private List<String> worlds() { return Bukkit.getWorlds().stream().map(World::getName).toList(); }

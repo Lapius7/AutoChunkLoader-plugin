@@ -54,6 +54,8 @@ Requires Paper 26.3 and Java 25.
 | `/acl add <name> <x1> <y1> <z1> <x2> <y2> <z2> [world]` | Register every chunk between two block positions |
 | `/acl pos1`, `/acl pos2`, `/acl add <name> sel` | Select two points, then register |
 | `/acl remove [name]` | Remove a group and release its tickets (asks to confirm for several chunks) |
+| `/acl remove here`, `/acl remove chunk [name] [x z]` | Take only this (or the given) chunk out of a group. An empty group is deleted; the rest may split into separate regions |
+| `/acl add here <name>`, `/acl add chunk <name> [x z]` | Add only this (or the given) chunk to an existing group |
 | `/acl list [page]` | List groups; world names are coloured by dimension |
 | `/acl info [name]` | Details of a group |
 | `/acl tp <name>` | Teleport to a group, across worlds |
@@ -76,7 +78,7 @@ Requires Paper 26.3 and Java 25.
 
 ## Configuration
 
-`plugins/AutoChunkLoader/config.yml`: `language` (`ja` / `en`), `limits` (radius, chunks per group, chunks in total, groups per player), `inspector` (radius, height, colour, particle cap) and `list.page-size`. Edit `lang/<code>.yml` to change messages.
+`plugins/AutoChunkLoader/config.yml`: `language` (`ja` / `en`), `limits` (radius, chunks per group, chunks in total, groups per player), `inspector` (radius, height, step, ring and post spacing, distance falloff, particle cap, edge and corner colour and size) and `list.page-size`. Edit `lang/<code>.yml` to change messages.
 
 ## Limits
 

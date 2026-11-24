@@ -10,12 +10,17 @@ limits:
 
 inspector:
   radius: 6                # chunks around the player to draw
-  height: 8                # draws +-height blocks around eye level
+  height: 16               # draws +-height blocks around eye level
   interval-ticks: 5
-  step: 1.0                # particle spacing in blocks
-  max-particles: 600       # per update per player; spacing widens above this
-  color: "#4ade80"
-  size: 1.0
+  step: 0.5                # particle spacing in blocks (near; widens with distance)
+  ring-spacing: 2          # vertical distance between horizontal lines
+  post-spacing: 8          # a vertical line every N blocks along an edge (corners always have one)
+  falloff: 24              # blocks over which the spacing doubles (far = sparse)
+  max-particles: 1500      # per update per player; edges are thinned above this, corners never
+  color: "#ffa200"         # edges
+  size: 1.6                # edge particle size (0.3-4)
+  corner-color: "#ff1f6d"
+  corner-size: 2.4
 
 list:
   page-size: 8

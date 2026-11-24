@@ -75,11 +75,16 @@ public final class Inspector {
         if (enabled.isEmpty()) return;
         FileConfiguration c = plugin.getConfig();
         double radiusBlocks = Math.max(1, c.getInt("inspector.radius", 6)) * 16.0;
-        double height = Math.max(1, c.getDouble("inspector.height", 8));
-        double step = Math.max(0.25, c.getDouble("inspector.step", 1.0));
-        int max = Math.max(50, c.getInt("inspector.max-particles", 600));
-        Color color = parseColor(c.getString("inspector.color", "#4ade80"));
-        float size = (float) c.getDouble("inspector.size", 1.0);
+        double height = Math.max(1, c.getDouble("inspector.height", 16));
+        double step = Math.max(0.25, c.getDouble("inspector.step", 0.5));
+        double ring = Math.max(1, c.getDouble("inspector.ring-spacing", 2));
+        double post = Math.max(2, c.getDouble("inspector.post-spacing", 8));
+        double falloff = Math.max(8, c.getDouble("inspector.falloff", 24));
+        int max = Math.max(50, c.getInt("inspector.max-particles", 1500));
+        Color edgeColor = parseColor(c.getString("inspector.color", "#ffa200"));
+        Color cornerColor = parseColor(c.getString("inspector.corner-color", "#ff1f6d"));
+        float size = clampSize(c.getDouble("inspector.size", 1.6));
+        float cornerSize = clampSize(c.getDouble("inspector.corner-size", 2.4));
 
         for (Iterator<UUID> it = enabled.iterator(); it.hasNext(); ) {
             Player p = plugin.getServer().getPlayer(it.next());
@@ -91,44 +96,59 @@ public final class Inspector {
             double ex = eye.getX(), ez = eye.getZ(), ey = eye.getY();
             double yLo = Math.max(w.getMinHeight(), ey - height), yHi = Math.min(w.getMaxHeight(), ey + height);
 
-            List<Seg> near = new ArrayList<>();
+            // points: {x, y, z, corner(1)/edge(0)}
+            List<double[]> pts = new ArrayList<>();
+            Set<Long> corners = new HashSet<>();
             for (Seg s : segs) {
                 double mx = (s.x1 + s.x2) / 2, mz = (s.z1 + s.z2) / 2;
-                if (Math.abs(mx - ex) <= radiusBlocks && Math.abs(mz - ez) <= radiusBlocks) near.add(s);
-            }
-            if (near.isEmpty()) continue;
-
-            // Horizontal rings on a world-aligned grid (every 4 blocks) so they do not slide while walking,
-            // plus vertical lines at segment ends (one every chunk border).
-            List<double[]> pts = new ArrayList<>();
-            for (Seg s : near) {
+                double dist = Math.hypot(mx - ex, mz - ez);
+                if (Math.abs(mx - ex) > radiusBlocks || Math.abs(mz - ez) > radiusBlocks) continue;
+                // near = dense, far = sparse (spacing grows with distance)
+                double k = Math.min(4.0, 1.0 + Math.max(0, dist - 16) / falloff);
                 double len = Math.abs(s.x2 - s.x1) + Math.abs(s.z2 - s.z1);
-                int n = Math.max(1, (int) Math.round(len / step));
-                for (double y = Math.ceil(yLo / 4) * 4; y <= yHi; y += 4)
+                int n = Math.max(1, (int) Math.round(len / (step * k)));
+                for (double y = Math.ceil(yLo / ring) * ring; y <= yHi; y += ring * k)
                     for (int i = 0; i <= n; i++) {
                         double t = (double) i / n;
-                        pts.add(new double[]{s.x1 + (s.x2 - s.x1) * t, y, s.z1 + (s.z2 - s.z1) * t});
+                        pts.add(new double[]{s.x1 + (s.x2 - s.x1) * t, y, s.z1 + (s.z2 - s.z1) * t, 0});
                     }
-                for (double y = yLo; y <= yHi; y += step) {
-                    pts.add(new double[]{s.x1, y, s.z1});
-                    pts.add(new double[]{s.x2, y, s.z2});
+                // vertical posts along the edge (without the corners)
+                int posts = Math.max(1, (int) Math.round(len / post));
+                for (int i = 1; i < posts; i++) {
+                    double t = (double) i / posts;
+                    double px = s.x1 + (s.x2 - s.x1) * t, pz = s.z1 + (s.z2 - s.z1) * t;
+                    for (double y = yLo; y <= yHi; y += step * k) pts.add(new double[]{px, y, pz, 0});
                 }
+                corners.add(((long) (int) s.x1 << 32) | ((int) s.z1 & 0xFFFFFFFFL));
+                corners.add(((long) (int) s.x2 << 32) | ((int) s.z2 & 0xFFFFFFFFL));
             }
-            int stride = Math.max(1, (int) Math.ceil(pts.size() / (double) max));
-            var builder = Particle.DUST.builder().receivers(p).color(color, size).count(1).force(true);
-            for (int i = 0; i < pts.size(); i += stride) {
-                double[] q = pts.get(i);
-                builder.location(new Location(w, q[0], q[1], q[2])).spawn();
+            for (long q : corners) {
+                double cx = (int) (q >> 32), cz = (int) q;
+                double k = Math.min(4.0, 1.0 + Math.max(0, Math.hypot(cx - ex, cz - ez) - 16) / falloff);
+                for (double y = yLo; y <= yHi; y += step * k) pts.add(new double[]{cx, y, cz, 1});
+            }
+            if (pts.isEmpty()) continue;
+
+            long nCorner = pts.stream().filter(q -> q[3] == 1).count();
+            int stride = Math.max(1, (int) Math.ceil((pts.size() - nCorner) / (double) Math.max(50, max - nCorner)));
+            var edge = Particle.DUST.builder().receivers(p).color(edgeColor, size).count(1).force(true);
+            var corner = Particle.DUST.builder().receivers(p).color(cornerColor, cornerSize).count(1).force(true);
+            int ei = 0;
+            for (double[] q : pts) {
+                if (q[3] == 1) corner.location(new Location(w, q[0], q[1], q[2])).spawn();   // corners are never thinned
+                else if (ei++ % stride == 0) edge.location(new Location(w, q[0], q[1], q[2])).spawn();
             }
         }
     }
+
+    private static float clampSize(double v) { return (float) Math.max(0.3, Math.min(4.0, v)); }
 
     private static Color parseColor(String hex) {
         try {
             String h = hex.startsWith("#") ? hex.substring(1) : hex;
             return Color.fromRGB(Integer.parseInt(h, 16));
         } catch (Exception e) {
-            return Color.LIME;
+            return Color.ORANGE;
         }
     }
 }

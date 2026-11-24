@@ -54,6 +54,8 @@ Paper 26.3 と Java 25 が必要です。
 | `/acl add <名前> <x1> <y1> <z1> <x2> <y2> <z2> [ワールド]` | ブロック座標 2 点の範囲のチャンクをすべて登録 |
 | `/acl pos1`、`/acl pos2`、`/acl add <名前> sel` | 2 点を選んでから登録 |
 | `/acl remove [名前]` | 削除してチケットを外す(複数チャンクは確認あり) |
+| `/acl remove here`、`/acl remove chunk [名前] [x z]` | 今いる(または指定した)チャンクだけをグループから外す。空になったグループは削除され、2 つ以上に分かれる形も許可 |
+| `/acl add here <名前>`、`/acl add chunk <名前> [x z]` | 今いる(または指定した)チャンクだけを既存のグループに足す |
 | `/acl list [ページ]` | 一覧。ワールド名はディメンションで色分け |
 | `/acl info [名前]` | グループの詳細 |
 | `/acl tp <名前>` | グループへ移動(別ワールドも可) |
@@ -76,7 +78,7 @@ Paper 26.3 と Java 25 が必要です。
 
 ## 設定
 
-`plugins/AutoChunkLoader/config.yml`: `language`(`ja` / `en`)、`limits`(半径・1 グループのチャンク数・全体のチャンク数・1 人あたりのグループ数)、`inspector`(半径・高さ・色・粒の上限)、`list.page-size`。メッセージは `lang/<言語コード>.yml` を編集して変えられます。
+`plugins/AutoChunkLoader/config.yml`: `language`(`ja` / `en`)、`limits`(半径・1 グループのチャンク数・全体のチャンク数・1 人あたりのグループ数)、`inspector`(半径・高さ・刻み・輪と支柱の間隔・距離による間引き・粒の上限・辺と角の色とサイズ)、`list.page-size`。メッセージは `lang/<言語コード>.yml` を編集して変えられます。
 
 ## 制限
 
