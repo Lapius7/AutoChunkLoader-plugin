@@ -17,6 +17,7 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
     private Messages messages;
     private GroupManager groups;
     private Inspector inspector;
+    private static final String SUPPORTED_MC = "26.3";
     private SpawnService spawner;
     private AclCommand command;
 
@@ -24,6 +25,14 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
 
     @Override
     public void onEnable() {
+        // Decide before any NMS class is touched: this plugin only supports Minecraft 26.3.
+        String mc = org.bukkit.Bukkit.getMinecraftVersion();
+        if (!SUPPORTED_MC.equals(mc)) {
+            getLogger().severe("AutoChunkLoader supports Minecraft " + SUPPORTED_MC + " only, but this server runs " + mc
+                    + ". Disabling the plugin; nothing was loaded.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         saveDefaultConfig();
         messages = new Messages(this);
         messages.load(getConfig().getString("language", "ja"));

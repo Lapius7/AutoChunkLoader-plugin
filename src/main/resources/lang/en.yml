@@ -86,7 +86,7 @@ ok:
   resized: 'Resized <white><name></white> to <white><w>×<d></white> <dark_gray>(<chunks> chunks)</dark_gray>'
   expanded: 'Expanded <white><name></white> to include this chunk <dark_gray>(<w>×<d> / <chunks> chunks)</dark_gray>'
   renamed: 'Renamed <white><old></white> → <white><name></white>'
-  spawn-on: 'Natural spawning <green>ON</green> for <white><name></white> <dark_gray>(needs one player online in that world)</dark_gray>'
+  spawn-on: 'Natural spawning <green>ON</green> for <white><name></white>'
   spawn-off: 'Natural spawning <red>OFF</red> for <white><name></white>'
   pos1: 'pos1 set to <white>(<x>, <z>)</white>'
   pos2: 'pos2 set to <white>(<x>, <z>)</white>'

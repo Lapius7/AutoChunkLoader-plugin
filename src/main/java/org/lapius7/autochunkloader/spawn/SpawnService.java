@@ -66,7 +66,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * spawn attempt per category. The attempt is a copy of {@code NaturalSpawner.spawnCategoryForPosition}
  * (Paper 26.3) in which the nearest-player distance is replaced by "in range"; biome mob lists, structure
  * spawns, light and floor rules, spawn cost, group sizes, spawn events and the spawn interval are vanilla's.
- * The mob cap is Paper's per-player cap with the group as the player's area.
+ * The mob cap is the one a player gets, shared with all mobs in the world.
  */
 public final class SpawnService implements Listener {
     private static final MobCategory[] CATEGORIES = NaturalSpawner.SPAWNING_CATEGORIES;
@@ -84,7 +84,7 @@ public final class SpawnService implements Listener {
     private boolean enabled;
 
     private MethodHandle getRandomPosWithin, getRandomSpawnMobAt, canSpawnMobAt, getMobForSpawn;
-    private MethodHandle stateCanSpawn, stateAfterSpawn;
+    private MethodHandle stateCanSpawn, stateAfterSpawn, stateSpawnableChunks;
     private boolean handlesOk;
 
     public SpawnService(AutoChunkLoaderPlugin plugin, GroupManager mgr) {
@@ -156,6 +156,7 @@ public final class SpawnService implements Listener {
                     MethodType.methodType(boolean.class, EntityType.class, Level.class, BlockPos.class, ChunkAccess.class));
             stateAfterSpawn = st.findVirtual(NaturalSpawner.SpawnState.class, "afterSpawn",
                     MethodType.methodType(void.class, Mob.class, ChunkAccess.class));
+            stateSpawnableChunks = st.findGetter(NaturalSpawner.SpawnState.class, "spawnableChunkCount", int.class);
             handlesOk = true;
         } catch (ReflectiveOperationException | RuntimeException e) {
             handlesOk = false;
@@ -175,15 +176,19 @@ public final class SpawnService implements Listener {
 
     private void tick() {
         Map<String, Ctx> ctxs = new HashMap<>();
+        Map<String, List<LevelChunk>> chunksByWorld = new HashMap<>();
         served.clear();
         for (ChunkGroup g : mgr.all()) {
             if (!g.spawn() || !g.active()) continue;
             Ctx cx = ctxs.computeIfAbsent(g.world(), this::context);
             if (!cx.ok) continue;
+            collect(cx, g, chunksByWorld.computeIfAbsent(g.world(), w -> new ArrayList<>()));
+        }
+        for (Map.Entry<String, List<LevelChunk>> e : chunksByWorld.entrySet()) {
             try {
-                processGroup(cx, g);
-            } catch (RuntimeException e) {
-                plugin.getLogger().warning("Natural spawning failed for group '" + g.name() + "': " + e);
+                processWorld(ctxs.get(e.getKey()), e.getKey(), e.getValue());
+            } catch (Throwable ex) {
+                plugin.getLogger().warning("Natural spawning failed in world '" + e.getKey() + "': " + ex);
             }
         }
         tagged.removeIf(m -> {
@@ -201,7 +206,7 @@ public final class SpawnService implements Listener {
         if (w == null) return c;
         c.level = ((CraftWorld) w).getHandle();
         c.cache = c.level.getChunkSource();
-        if (!c.level.getGameRules().get(GameRules.SPAWN_MOBS) || c.level.players().isEmpty()) return c;
+        if (!c.level.getGameRules().get(GameRules.SPAWN_MOBS)) return c;
         c.state = c.cache.getLastSpawnState();
         if (c.state == null) return c;
         boolean friendlies = c.cache.spawnFriendlies, enemies = c.cache.spawnEnemies;
@@ -227,26 +232,36 @@ public final class SpawnService implements Listener {
         return c;
     }
 
-    private void processGroup(Ctx cx, ChunkGroup g) {
-        // chunks vanilla does not handle: loaded and entity-ticking, no player in spawn range
-        List<LevelChunk> chunks = new ArrayList<>();
+    /** Chunks vanilla does not handle: loaded and entity-ticking, no player in spawn range. */
+    private void collect(Ctx cx, ChunkGroup g, List<LevelChunk> out) {
+        Set<Long> ok = served.computeIfAbsent(g.world(), w -> new HashSet<>());
         for (long k : g.chunks()) {
             LevelChunk chunk = cx.cache.getChunkNow(ChunkGroup.unpackX(k), ChunkGroup.unpackZ(k));
             if (chunk == null || !chunk.getFullStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) continue;
             if (!cx.cache.chunkMap.getPlayersCloseForSpawning(chunk.getPos()).isEmpty()) continue;
             if (!cx.level.getWorldBorder().isWithinBounds(chunk.getPos())) continue;
-            chunks.add(chunk);
+            if (ok.add(k)) out.add(chunk);
         }
+    }
+
+    /**
+     * One mob cap for the whole world, shared with everything else in it. Every mob of the category in the world
+     * counts (as in NaturalSpawner.createState) against the cap a player gets: the spawn limit itself with Paper's
+     * per-player-mob-spawns (the default), otherwise vanilla's limit * chunks / 289 with the chunks served here
+     * added to the spawnable chunk count.
+     */
+    private void processWorld(Ctx cx, String world, List<LevelChunk> chunks) throws Throwable {
         if (chunks.isEmpty()) return;
-        Set<Long> ok = served.computeIfAbsent(g.world(), w -> new HashSet<>());
-        for (LevelChunk c : chunks) ok.add(ChunkGroup.pack(c.getPos().x(), c.getPos().z()));
         Collections.shuffle(chunks, ThreadLocalRandom.current());
-
+        int[] cnt = countMobs(cx, world);
+        int spawnable = (int) stateSpawnableChunks.invoke(cx.state);
         int[] cap = new int[MobCategory.values().length];
-        int[] cnt = countMobs(cx, g);
-        int areas = Math.max(1, (g.chunkCount() + AREA_CHUNKS - 1) / AREA_CHUNKS);
-        for (MobCategory cat : cx.categories) cap[cat.ordinal()] = cx.limits[cat.ordinal()] * areas;
-
+        boolean perPlayer = cx.level.paperConfig().entities.spawning.perPlayerMobSpawns;
+        for (MobCategory cat : cx.categories) {
+            int limit = cx.limits[cat.ordinal()];
+            // Paper's default (per-player-mob-spawns) gives every player a flat limit; vanilla scales it by chunk count.
+            cap[cat.ordinal()] = perPlayer ? limit : (int) ((long) limit * (spawnable + chunks.size()) / AREA_CHUNKS);
+        }
         for (LevelChunk chunk : chunks) {
             chunk.incrementInhabitedTime();
             cx.level.tickThunder(chunk);
@@ -259,22 +274,17 @@ public final class SpawnService implements Listener {
     }
 
     /**
-     * Mob counts per category in the group's chunks, counted like NaturalSpawner.createState
-     * (persistent mobs are skipped; Paper's count-all-mobs-for-spawning is honoured).
+     * Mob counts per category in the whole world, counted like NaturalSpawner.createState (persistent mobs
+     * are skipped; Paper's count-all-mobs-for-spawning is honoured). Also protects mobs in served chunks.
      */
-    @SuppressWarnings("removal")
-    private int[] countMobs(Ctx cx, ChunkGroup g) {
+    private int[] countMobs(Ctx cx, String world) {
         int[] cnt = new int[MobCategory.values().length];
-        AABB box = new AABB(g.minX() * 16.0, cx.level.getMinY(), g.minZ() * 16.0,
-                (g.maxX() + 1) * 16.0, cx.level.getMaxY() + 1.0, (g.maxZ() + 1) * 16.0);
         boolean countAll = cx.level.paperConfig().entities.spawning.countAllMobsForSpawning;
-        Set<Long> own = g.chunks();
-        Set<Long> ok = served.getOrDefault(g.world(), Set.of());
-        for (Mob mob : cx.level.getEntitiesOfClass(Mob.class, box, m -> true)) {
-            if (!own.contains(ChunkGroup.pack(mob.blockPosition().getX() >> 4, mob.blockPosition().getZ() >> 4))) continue;
+        Set<Long> ok = served.getOrDefault(world, Set.of());
+        for (net.minecraft.world.entity.Entity en : cx.level.getAllEntities()) {
+            if (!(en instanceof Mob mob)) continue;
             long key = ChunkGroup.pack(mob.blockPosition().getX() >> 4, mob.blockPosition().getZ() >> 4);
-            boolean wasTagged = tagged.contains(mob);
-            if (counts(mob, countAll, wasTagged)) cnt[mob.getType().getCategory().ordinal()]++;
+            if (counts(mob, countAll, tagged.contains(mob))) cnt[mob.getType().getCategory().ordinal()]++;
             if (ok.contains(key) && mob.getType().getCategory() != MobCategory.MISC && isNaturalOrChunkGen(mob)) protect(mob);
         }
         return cnt;

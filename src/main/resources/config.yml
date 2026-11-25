@@ -10,8 +10,8 @@ limits:
 
 # Natural mob spawning for groups with `/acl spawn <group> on` (default off per group).
 # Vanilla spawning (biome mobs, light, spawn interval, mob cap) runs in the group's chunks even when no
-# player is within 128 blocks, and mobs there are kept from despawning. At least one player must be
-# online in that world (vanilla rule). Chunks that have a player nearby are left to vanilla.
+# player is within 128 blocks, and mobs there are kept from despawning. It works in every dimension,
+# also when nobody is in that world. Chunks that have a player nearby are left to vanilla.
 spawn:
   enabled: true            # false = feature off for everyone
 

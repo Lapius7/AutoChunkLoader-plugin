@@ -29,7 +29,7 @@
 Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until you remove it. A group can also cover many chunks: a radius around you, or the box between two block positions. Groups work in every dimension.
 
 > [!NOTE]
-> Checked on a Paper 26.3 test server in the Overworld and the Nether. The End and the `full` Inspector mode were not re-checked for 0.1.0.
+> Checked on a Paper 26.3 test server in the Overworld, the Nether, the End and a custom world. The `full` Inspector mode was not re-checked for 0.1.0.
 
 ## Features
 
@@ -45,7 +45,7 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 ## Quick start
 
 > [!NOTE]
-> Requires Paper 26.3 and Java 25.
+> Requires Paper 26.3 and Java 25. On any other Minecraft version the plugin logs a SEVERE message at startup, disables itself and loads nothing.
 
 1. Download `AutoChunkLoader-0.1.0.jar` from [Releases](https://github.com/Lapius7/AutoChunkLoader-plugin/releases/latest) and put it in `plugins/`, then start the server.
 2. Stand in a chunk and run `/acl add`. Check it with `/acl here`.
@@ -104,16 +104,17 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 ## Limits
 
 > [!IMPORTANT]
-> A ticket keeps a chunk loaded and running, but vanilla ties random ticks and mob spawning to nearby players. In tests on Paper 26.3 (chunks about 3000 blocks from any player, load level `ENTITY_TICKING`):
-> - Hoppers kept working.
-> - Crops did not grow far away (age 0 after 3 minutes, while the same crop near a player reached age 7).
-> - No mobs spawned in the far group, while mobs spawned near a player. `/acl spawn <name> on` fixes this (see below).
->
-> Expect machines that move items to work, and crop farms to need a player nearby.
->
-> **Natural spawning (`/acl spawn <name> on`).** For a group with spawning on, chunks that have no player within 128 blocks get vanilla natural spawning: the same spawn positions, biome mobs, light and floor rules, spawn interval and group sizes. Only the "a player must be within 128 blocks" rule is dropped, and only for these chunks. Mobs there do not despawn while the player is away. Chunks near a player stay vanilla. At least one player must be online in that world.
-> - Mob cap: each group gets Paper's per-player cap (for example 70 monsters), plus one more for every 289 chunks. A small trap far from everyone therefore fills up to a full cap by itself, while next to a player the cap is shared with everything around them, so a far trap can fill faster than the same trap beside a player.
-> - Tested on Paper 26.3: a dark-room trap with the player over 128 blocks away spawned the same mobs (zombie, skeleton, creeper, spider, enderman, witch and others) and held its count for 3 minutes. With the monster cap raised so it did not limit either case, near and far gave similar counts.
+> **The server must not pause when empty.** A ticket keeps chunks loaded and ticking only while the server itself ticks. With `pause-when-empty-seconds` set to a positive value in `server.properties` (Paper 26.3 default is `-1`, off), the whole server stops once nobody has been online for that many seconds, and every kept chunk stops with it: hoppers, redstone and spawning. Keep it at `-1` if machines must run while the server is empty. Paper's `disable-world-ticking-when-empty` is a related per-world switch; leave it `false` too.
+
+> [!NOTE]
+> Tested on Paper 26.3 with chunks far from every player (load level `ENTITY_TICKING`), in the Overworld, Nether, End and a custom world, including worlds with nobody in them:
+> - Redstone ran: observer clocks, pistons and hoppers kept working for over 10 minutes.
+> - Crops grew far away: wheat, nether wart and chorus flowers (random ticks).
+> - Mobs spawn only with `/acl spawn <name> on` (below).
+
+> **Natural spawning (`/acl spawn <name> on`).** For a group with spawning on, chunks that have no player within 128 blocks get vanilla natural spawning: the same spawn positions, biome mobs, light and floor rules, spawn interval and group sizes. Only the "a player must be within 128 blocks" rule is dropped, and only for these chunks. It works in every dimension, even when nobody is in that world. Mobs there do not despawn while the player is away. Chunks near a player stay vanilla.
+> - Mob cap: one cap for the whole world, shared with every mob in it and counted as vanilla counts. A far chunk gets the same cap a nearby player gets (with Paper's default `per-player-mob-spawns`, the limit itself, for example 70 monsters). A far trap therefore fills no faster than the same trap beside a player.
+> - Tested on Paper 26.3 with identical dark-room traps near and far: both reached about 25 monsters within 10 seconds and then held 26 to 33 for 3 minutes. With the cap raised to 1000, near and far reached about 500 and 360 in 60 seconds.
 
 <details>
 <summary>Build from source</summary>

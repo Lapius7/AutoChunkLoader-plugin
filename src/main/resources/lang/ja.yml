@@ -86,7 +86,7 @@ ok:
   resized: '<white><name></white> を <white><w>×<d></white> に変更しました <dark_gray>(<chunks> チャンク)</dark_gray>'
   expanded: '<white><name></white> を今いるチャンクまで広げました <dark_gray>(<w>×<d> / <chunks> チャンク)</dark_gray>'
   renamed: '<white><old></white> → <white><name></white> に名前を変更しました'
-  spawn-on: '<white><name></white> の自然スポーンを <green>ON</green> にしました <dark_gray>(そのワールドに誰か1人いる必要があります)</dark_gray>'
+  spawn-on: '<white><name></white> の自然スポーンを <green>ON</green> にしました'
   spawn-off: '<white><name></white> の自然スポーンを <red>OFF</red> にしました'
   pos1: 'pos1 を <white>(<x>, <z>)</white> に設定しました'
   pos2: 'pos2 を <white>(<x>, <z>)</white> に設定しました'
