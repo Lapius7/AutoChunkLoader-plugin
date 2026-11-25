@@ -33,9 +33,9 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private static final int MAX_CHUNK_COORD = 1_875_000;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
     private static final List<String> SUBS = List.of("help", "add", "here", "remove", "list", "info", "resize",
-            "expand", "rename", "spawn", "pos1", "pos2", "inspector", "i", "reload");
+            "expand", "rename", "spawn", "randomtick", "pos1", "pos2", "inspector", "i", "reload");
 
-    private static final Set<String> RESERVED = Set.of("sel", "selection", "chunk", "confirm");
+    private static final Set<String> RESERVED = Set.of("sel", "selection", "chunk", "confirm", "all");
     private static final Pattern COORD_TOKEN = Pattern.compile("~(-?\\d+)?|-?\\d+");
 
     private record Sel(String world, int x, int z) { }
@@ -52,14 +52,17 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         Fail(Component msg) { super(null, null, false, false); this.msg = msg; }
     }
 
-    public AclCommand(AutoChunkLoaderPlugin plugin, GroupManager mgr, Inspector inspector, org.lapius7.autochunkloader.spawn.SpawnService spawner) {
+    public AclCommand(AutoChunkLoaderPlugin plugin, GroupManager mgr, Inspector inspector, org.lapius7.autochunkloader.spawn.SpawnService spawner,
+                      org.lapius7.autochunkloader.randomtick.RandomTickService randomTicks) {
         this.plugin = plugin;
         this.spawner = spawner;
+        this.randomTicks = randomTicks;
         this.mgr = mgr;
         this.inspector = inspector;
     }
 
     private final org.lapius7.autochunkloader.spawn.SpawnService spawner;
+    private final org.lapius7.autochunkloader.randomtick.RandomTickService randomTicks;
 
     private Messages m() { return plugin.messages(); }
     private Fail fail(String key, net.kyori.adventure.text.minimessage.tag.resolver.TagResolver... r) { return new Fail(m().err(key, r)); }
@@ -82,7 +85,8 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                 case "resize" -> { need(s, "manage"); resize(s, r); }
                 case "expand" -> { need(s, "manage"); expand(s, r); }
                 case "rename" -> { need(s, "manage"); rename(s, r); }
-                case "spawn" -> { need(s, "spawn"); spawn(s, r); }
+                case "spawn" -> { need(s, "spawn"); toggle(s, r, Flag.SPAWN); }
+            case "randomtick", "rt" -> { need(s, "randomtick"); toggle(s, r, Flag.RANDOMTICK); }
                 case "pos1", "pos2" -> { need(s, "manage"); pos(s, sub.equals("pos1")); }
                 case "inspector", "i" -> toggleInspector(s, r);
                 case "reload" -> { need(s, "admin"); reload(s); }
@@ -525,8 +529,9 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         }
 
         lines.add(m().text("row", p("k", m().raw("lbl.spawn")), c("v", !spawner.enabled() ? m().text("info.spawn-disabled")
-                : m().text(g.spawn() ? "info.spawn-on" : "info.spawn-off"))));
-        lines.add(m().text("row", p("k", m().raw("lbl.randomtick")), c("v", m().text("info.randomtick-always"))));
+                : switchButtons(s, g, Flag.SPAWN))));
+        lines.add(m().text("row", p("k", m().raw("lbl.randomtick")), c("v", !randomTicks.enabled() ? m().text("info.randomtick-unavailable")
+                : switchButtons(s, g, Flag.RANDOMTICK))));
 
         Component btns = Component.empty().append(m().text("ui.indent"));
         if (s instanceof Player) btns = btns.append(m().button("btn.inspector", "hover.inspector", "/acl inspector", true)).append(Component.space());
@@ -609,17 +614,73 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(m().ok("ok.renamed", p("old", old), p("name", g.name())));
     }
 
-    private void spawn(CommandSender s, String[] a) {
-        if (a.length < 1 || a.length > 2) throw fail("err.usage", p("usage", "/acl spawn <name> [on|off]"));
+    /** The two per-group on/off switches. */
+    private enum Flag {
+        SPAWN("spawn", "spawn", "toggles.spawn-title"),
+        RANDOMTICK("randomtick", "randomtick", "toggles.randomtick-title");
+        final String cmd, perm, title;
+        Flag(String cmd, String perm, String title) { this.cmd = cmd; this.perm = perm; this.title = title; }
+        boolean get(ChunkGroup g) { return this == SPAWN ? g.spawn() : g.randomTick(); }
+        void set(ChunkGroup g, boolean v) { if (this == SPAWN) g.spawn(v); else g.randomTick(v); }
+    }
+
+    private boolean canSwitch(CommandSender s, ChunkGroup g, Flag f) {
+        if (!(has(s, f.perm) || isAdmin(s))) return false;
+        return isAdmin(s) || (s instanceof Player pl && pl.getUniqueId().equals(g.owner()));
+    }
+
+    /** "[ON] [OFF]": the current state is bold, the other one is a click to switch (only for those who may). */
+    private Component switchButtons(CommandSender s, ChunkGroup g, Flag f) {
+        boolean cur = f.get(g), may = canSwitch(s, g, f);
+        Component on = cur || !may ? m().text(cur ? "btn.sw-on-cur" : "btn.sw-on")
+                : m().button("btn.sw-on", "hover." + f.cmd + "-on", "/acl " + f.cmd + " " + g.name() + " on", true);
+        Component off = !cur || !may ? m().text(!cur ? "btn.sw-off-cur" : "btn.sw-off")
+                : m().button("btn.sw-off", "hover." + f.cmd + "-off", "/acl " + f.cmd + " " + g.name() + " off", true);
+        return Component.empty().append(on).append(Component.space()).append(off);
+    }
+
+    /** /acl spawn|randomtick <name|all> [on|off] */
+    private void toggle(CommandSender s, String[] a, Flag f) {
+        String usage = "/acl " + f.cmd + " <name|all> [on|off]";
+        if (a.length < 1 || a.length > 2) throw fail("err.usage", p("usage", usage));
+        Boolean v = null;
+        if (a.length == 2) {
+            if (a[1].equalsIgnoreCase("on")) v = true;
+            else if (a[1].equalsIgnoreCase("off")) v = false;
+            else throw fail("err.usage", p("usage", usage));
+        }
+        if (a[0].equalsIgnoreCase("all")) {
+            if (v == null) { toggleList(s, f); return; }
+            int n = 0;
+            for (ChunkGroup g : mgr.all()) {
+                if (!canSwitch(s, g, f)) continue;
+                f.set(g, v);
+                n++;
+            }
+            if (n > 0) mgr.touch();
+            s.sendMessage(m().ok("ok." + f.cmd + "-all-" + (v ? "on" : "off"), p("n", n)));
+            return;
+        }
         ChunkGroup g = ownGroup(s, a[0]);
-        boolean v;
-        if (a.length == 1) v = !g.spawn();
-        else if (a[1].equalsIgnoreCase("on")) v = true;
-        else if (a[1].equalsIgnoreCase("off")) v = false;
-        else throw fail("err.usage", p("usage", "/acl spawn <name> [on|off]"));
-        g.spawn(v);
+        boolean nv = v != null ? v : !f.get(g);
+        f.set(g, nv);
         mgr.touch();
-        s.sendMessage(m().ok(v ? "ok.spawn-on" : "ok.spawn-off", p("name", g.name())));
+        s.sendMessage(m().ok("ok." + f.cmd + (nv ? "-on" : "-off"), p("name", g.name())));
+    }
+
+    /** /acl spawn|randomtick all: state of every group. */
+    private void toggleList(CommandSender s, Flag f) {
+        List<Component> lines = new ArrayList<>();
+        List<ChunkGroup> all = new ArrayList<>(mgr.all());
+        all.sort(Comparator.comparing(g -> g.name().toLowerCase(Locale.ROOT)));
+        lines.add(rule(m().text(f.title, p("count", all.size()))));
+        if (all.isEmpty()) lines.add(Component.empty().append(m().text("ui.indent")).append(m().text("toggles.empty")));
+        for (ChunkGroup g : all) {
+            lines.add(Component.empty().append(m().text("ui.indent")).append(m().text("toggles.row",
+                    p("name", g.name()), c("world", dim(g.world())), c("state", switchButtons(s, g, f)))));
+        }
+        lines.add(rule());
+        send(s, lines);
     }
 
     // =================================================================== pos1 / pos2
@@ -655,7 +716,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private void help(CommandSender s) {
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("help.title", p("version", plugin.getPluginMeta().getVersion()))));
-        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "spawn", "pos", "inspector", "reload"}) {
+        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "spawn", "randomtick", "pos", "inspector", "reload"}) {
             String cmd = m().raw("help.cmd." + k);
             lines.add(Component.empty().append(m().text("ui.indent")).append(
                     m().text("help.row", p("cmd", cmd), p("desc", m().raw("help.desc." + k)))
@@ -676,6 +737,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                 String perm = switch (sub) {
                     case "add", "remove", "resize", "expand", "rename", "pos1", "pos2" -> "manage";
                     case "spawn" -> "spawn";
+            case "randomtick", "rt" -> "randomtick";
                     case "reload" -> "admin";
                     default -> "use";
                 };
@@ -721,7 +783,10 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
             }
             case "expand" -> { if (i == 1) out.addAll(names(s, true)); }
             case "rename" -> { if (i == 1) out.addAll(names(s, true)); else if (i == 2) out.add("<new-name>"); }
-            case "spawn" -> { if (i == 1) out.addAll(names(s, true)); else if (i == 2) out.addAll(List.of("on", "off")); }
+            case "spawn", "randomtick", "rt" -> {
+                if (i == 1) { out.add("all"); out.addAll(names(s, true)); }
+                else if (i == 2) out.addAll(List.of("on", "off"));
+            }
             case "list", "ls" -> {
                 if (i == 1) {
                     int pages = Math.max(1, (mgr.all().size() + pageSize() - 1) / pageSize());

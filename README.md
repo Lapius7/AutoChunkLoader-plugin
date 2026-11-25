@@ -73,7 +73,8 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 | `/acl expand [name]` | Grow to include the current chunk |
 | `/acl rename <old> <new>` | Rename a group |
 | `/acl inspector`, `/acl i` | Toggle the outline |
-| `/acl spawn <name> [on\|off]` | Natural mob spawning in a group, even with no player nearby (off by default; needs `autochunkloader.spawn`) |
+| `/acl spawn <name\|all> [on\|off]` | Natural mob spawning in a group, even with no player nearby (off by default; needs `autochunkloader.spawn`). `all` with `on`/`off` switches every group you may manage; `all` alone lists every group's state |
+| `/acl randomtick <name\|all> [on\|off]` | Random ticks (crop growth, grass spread, ice melt...) in a group (on by default; needs `autochunkloader.randomtick`). `all` works like `spawn all` |
 | `/acl reload` | Reload config and language files |
 
 </details>
@@ -115,6 +116,12 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 > **Natural spawning (`/acl spawn <name> on`).** For a group with spawning on, chunks that have no player within 128 blocks get vanilla natural spawning: the same spawn positions, biome mobs, light and floor rules, spawn interval and group sizes. Only the "a player must be within 128 blocks" rule is dropped, and only for these chunks. It works in every dimension, even when nobody is in that world. Mobs there do not despawn while the player is away. Chunks near a player stay vanilla.
 > - Mob cap: one cap for the whole world, shared with every mob in it and counted as vanilla counts. A far chunk gets the same cap a nearby player gets (with Paper's default `per-player-mob-spawns`, the limit itself, for example 70 monsters). A far trap therefore fills no faster than the same trap beside a player.
 > - Tested on Paper 26.3 with identical dark-room traps near and far: both reached about 25 monsters within 10 seconds and then held 26 to 33 for 3 minutes. With the cap raised to 1000, near and far reached about 500 and 360 in 60 seconds.
+>
+> **Random ticks (`/acl randomtick <name> on|off`, default on).** Random ticks are what grow crops, spread grass, melt ice, decay leaves and spread fire. With `off`, they stop in every chunk of the group and nowhere else. The chunk stays loaded, entities, hoppers, redstone and scheduled ticks run as before, and other chunks (registered or not, near a player or not) are not touched. Chunks near a player are switched off too, since the group is what counts.
+> - Overlapping groups: a chunk has random ticks only while every group that contains it has them on. One group with `off` is enough to stop them.
+> - Not affected: weather effects that are not random ticks of a block (snow and ice forming in rain, lightning).
+> - The setting is saved in `data.yml` (`randomtick: false`) and kept across restarts. `/acl info` shows the state with `[ON] [OFF]` buttons.
+> - How: while the server ticks, the affected sections report no random-ticking blocks, and the real values are put back at the end of the tick. Block changes made in between are kept.
 
 <details>
 <summary>Build from source</summary>

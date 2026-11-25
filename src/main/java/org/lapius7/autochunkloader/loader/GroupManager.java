@@ -99,7 +99,7 @@ public final class GroupManager {
         changed();
     }
 
-    /** Persist a flag change (spawn on/off). */
+    /** Persist a flag change (spawn / randomtick on/off). */
     public void touch() { changed(); }
 
     private void changed() {
@@ -196,6 +196,7 @@ public final class GroupManager {
                     g = new ChunkGroup(name, world, b.get(0), b.get(1), b.get(2), b.get(3), owner, created);
                 }
                 g.spawn(s.getBoolean("spawn", false));
+                g.randomTick(s.getBoolean("randomtick", true));
                 groups.put(name.toLowerCase(Locale.ROOT), g);
             } catch (Exception e) {
                 plugin.getLogger().warning("Skipping invalid group '" + name + "' in data.yml: " + e.getMessage());
@@ -219,6 +220,7 @@ public final class GroupManager {
             y.set(p + ".owner", g.owner().toString());
             y.set(p + ".created", g.created().toString());
             if (g.spawn()) y.set(p + ".spawn", true);
+            if (!g.randomTick()) y.set(p + ".randomtick", false);
         }
         try {
             Files.createDirectories(dataFile.getParent());

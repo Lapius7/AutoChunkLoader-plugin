@@ -12,6 +12,7 @@ import org.lapius7.autochunkloader.inspector.Inspector;
 import org.lapius7.autochunkloader.lang.Messages;
 import org.lapius7.autochunkloader.loader.GroupManager;
 import org.lapius7.autochunkloader.spawn.SpawnService;
+import org.lapius7.autochunkloader.randomtick.RandomTickService;
 
 public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener {
     private Messages messages;
@@ -19,6 +20,7 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
     private Inspector inspector;
     private static final String SUPPORTED_MC = "26.3";
     private SpawnService spawner;
+    private RandomTickService randomTicks;
     private AclCommand command;
 
     public Messages messages() { return messages; }
@@ -46,7 +48,9 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
 
         spawner = new SpawnService(this, groups);
         spawner.start();
-        command = new AclCommand(this, groups, inspector, spawner);
+        randomTicks = new RandomTickService(this, groups);
+        randomTicks.start();
+        command = new AclCommand(this, groups, inspector, spawner, randomTicks);
         PluginCommand pc = getCommand("acl");
         if (pc != null) {
             pc.setExecutor(command);
@@ -60,6 +64,7 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
     public void onDisable() {
         if (inspector != null) inspector.shutdown();
         if (spawner != null) spawner.stop();
+        if (randomTicks != null) randomTicks.stop();
         if (groups != null) {
             groups.releaseAll();
             groups.save();

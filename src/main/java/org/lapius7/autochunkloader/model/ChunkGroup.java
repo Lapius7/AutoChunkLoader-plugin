@@ -39,6 +39,12 @@ public final class ChunkGroup {
         this.created = created == null ? Instant.now() : created;
     }
 
+    /** Random ticks (crop growth, grass spread, ice melt...) run in this group's chunks; default on (persisted when off). */
+    private boolean randomTick = true;
+
+    public boolean randomTick() { return randomTick; }
+    public void randomTick(boolean v) { this.randomTick = v; }
+
     public boolean spawn() { return spawn; }
     public void spawn(boolean v) { this.spawn = v; }
 
