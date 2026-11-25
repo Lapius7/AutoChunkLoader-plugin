@@ -29,7 +29,7 @@
 Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until you remove it. A group can also cover many chunks: a radius around you, or the box between two block positions. Groups work in every dimension.
 
 > [!NOTE]
-> Checked on a Paper 26.3 test server in the Overworld, the Nether, the End and a custom world. The `full` Inspector mode was not re-checked for 0.1.0.
+> Checked on a Paper 26.3 test server in the Overworld, the Nether, the End and a custom world. The `full` Inspector mode was not re-checked for 0.2.0.
 
 ## Features
 
@@ -47,7 +47,7 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 > [!NOTE]
 > Requires Paper 26.3 and Java 25. On any other Minecraft version the plugin logs a SEVERE message at startup, disables itself and loads nothing.
 
-1. Download `AutoChunkLoader-0.1.0.jar` from [Releases](https://github.com/Lapius7/AutoChunkLoader-plugin/releases/latest) and put it in `plugins/`, then start the server.
+1. Download `AutoChunkLoader-0.2.0.jar` from [Releases](https://github.com/Lapius7/AutoChunkLoader-plugin/releases/latest) and put it in `plugins/`, then start the server.
 2. Stand in a chunk and run `/acl add`. Check it with `/acl here`.
 3. Remove it with `/acl remove`.
 

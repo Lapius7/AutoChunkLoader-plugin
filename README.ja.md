@@ -29,7 +29,7 @@
 チャンクの上で `/acl add` を実行すると、削除するまでそのチャンクを読み込んだままにします。グループには複数のチャンクを入れられます。自分の周囲の半径、または 2 つのブロック座標で囲んだ範囲を指定できます。どのディメンションでも使えます。
 
 > [!NOTE]
-> Paper 26.3 のテストサーバーで、オーバーワールド、ネザー、エンド、カスタムワールドを確認しました。Inspector の `full` モードは 0.1.0 では再確認していません。
+> Paper 26.3 のテストサーバーで、オーバーワールド、ネザー、エンド、カスタムワールドを確認しました。Inspector の `full` モードは 0.2.0 では再確認していません。
 
 ## 特長
 
@@ -47,7 +47,7 @@
 > [!NOTE]
 > Paper 26.3 と Java 25 が必要です。ほかの Minecraft バージョンでは、起動時に SEVERE を出して自分を無効化し、何も読み込みません。
 
-1. [Releases](https://github.com/Lapius7/AutoChunkLoader-plugin/releases/latest) から `AutoChunkLoader-0.1.0.jar` をダウンロードして `plugins/` に置き、サーバーを起動します。
+1. [Releases](https://github.com/Lapius7/AutoChunkLoader-plugin/releases/latest) から `AutoChunkLoader-0.2.0.jar` をダウンロードして `plugins/` に置き、サーバーを起動します。
 2. チャンクの上で `/acl add` を実行します。`/acl here` で確認できます。
 3. 削除するときは `/acl remove` です。
 
