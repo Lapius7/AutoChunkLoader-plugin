@@ -87,6 +87,8 @@
 |---|---|---|
 | `autochunkloader.use` | list、info、here、inspector、help | 全員 |
 | `autochunkloader.manage` | 自分のグループの add、remove、resize、expand、rename | op |
+| `autochunkloader.spawn` | 自分のグループで `/acl spawn` | op |
+| `autochunkloader.randomtick` | 自分のグループで `/acl randomtick` | op |
 | `autochunkloader.inspectorall` | `/acl inspectorall` | op |
 | `autochunkloader.admin` | 他人のグループの操作、reload、上限の無視 | op |
 
@@ -127,13 +129,6 @@
 > - 設定は `data.yml`（`randomtick: false`）に保存され、再起動後も残ります。`/acl info` では `[ON] [OFF]` のボタンで状態を確認・切替できます。
 > - 仕組み: サーバーが 1 ティックを処理する間だけ、対象のセクションが「ランダムティックするブロックなし」と答えるようにし、ティックの終わりに本来の値へ戻します。その間に起きたブロックの変更は保たれます。
 
-<details>
-<summary>ソースからビルドする</summary>
+## ライセンス
 
-Java 25 が必要です。jar は `build/libs/` に出力されます。
-
-```sh
-./gradlew build
-```
-
-</details>
+[MIT](LICENSE)

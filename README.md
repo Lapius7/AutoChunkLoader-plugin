@@ -87,7 +87,9 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 |---|---|---|
 | `autochunkloader.use` | list, info, here, inspector, help | everyone |
 | `autochunkloader.manage` | add, remove, resize, expand, rename your own groups | op |
-| `autochunkloader.inspectorall` | `/acl inspectorall` | ops |
+| `autochunkloader.spawn` | `/acl spawn` on your own groups | op |
+| `autochunkloader.randomtick` | `/acl randomtick` on your own groups | op |
+| `autochunkloader.inspectorall` | `/acl inspectorall` | op |
 | `autochunkloader.admin` | any group, reload, ignore limits | op |
 
 ## Configuration
@@ -127,13 +129,6 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 > - The setting is saved in `data.yml` (`randomtick: false`) and kept across restarts. `/acl info` shows the state with `[ON] [OFF]` buttons.
 > - How: while the server ticks, the affected sections report no random-ticking blocks, and the real values are put back at the end of the tick. Block changes made in between are kept.
 
-<details>
-<summary>Build from source</summary>
+## License
 
-Java 25 is required. The jar is written to `build/libs/`.
-
-```sh
-./gradlew build
-```
-
-</details>
+[MIT](LICENSE)
