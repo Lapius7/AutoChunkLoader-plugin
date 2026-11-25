@@ -213,6 +213,8 @@ help:
     pos: '/acl pos1 | pos2'
     inspector: '/acl inspector (i)'
     inspectorall: '/acl inspectorall [on|off] (iall)'
+    undo: '/acl undo'
+    redo: '/acl redo'
     reload: '/acl reload'
   desc:
     here: '今いるチャンクの状態 (登録・グループ・ロードレベル)'
@@ -231,6 +233,8 @@ help:
     pos: '範囲選択の 2 点を今の位置に設定'
     inspector: 'ロード維持中チャンクの外周の辺だけを表示 (自分だけ。inspector.mode: edges / full)'
     inspectorall: '全オンラインプレイヤーに境界表示を強制 (管理者用。再起動後も保持。登録チャンクから遠い人には描画しない)'
+    undo: '直前のグループ変更を取り消す(繰り返し可、上限は undo.limit)'
+    redo: '取り消した操作をやり直す'
     reload: '設定と言語ファイルを再読み込み'
 
 toggles:

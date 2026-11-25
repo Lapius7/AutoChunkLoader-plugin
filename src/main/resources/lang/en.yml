@@ -213,6 +213,8 @@ help:
     pos: '/acl pos1 | pos2'
     inspector: '/acl inspector (i)'
     inspectorall: '/acl inspectorall [on|off] (iall)'
+    undo: '/acl undo'
+    redo: '/acl redo'
     reload: '/acl reload'
   desc:
     here: 'State of this chunk (registered, groups, load level)'
@@ -231,6 +233,8 @@ help:
     pos: 'Set a selection corner at your position'
     inspector: 'Show only the edges of kept chunks (only you; inspector.mode: edges / full)'
     inspectorall: 'Force the outline on for every online player (admin; saved across restarts; far-away players get nothing drawn)'
+    undo: 'Undo your last change to groups (repeatable, up to undo.limit steps)'
+    redo: 'Redo what you undid'
     reload: 'Reload config and language files'
 
 toggles:
