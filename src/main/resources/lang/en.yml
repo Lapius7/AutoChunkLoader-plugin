@@ -106,6 +106,9 @@ ok:
   pos2: 'pos2 set to <white>(<x>, <z>)</white>'
   inspector-on: 'Outline <green>ON</green>. Only you can see the edges of kept chunks (<white>inspector.mode</white> in config.yml: edges / full)'
   inspector-off: 'Outline <red>OFF</red>'
+  inspector-forced: '<gray>An admin has forced the outline on for everyone, so it stays visible</gray>'
+  inspectorall-on: 'Outline forced <green>ON</green> for all online players (also after reconnect and restart). Turn off with <white>/acl inspectorall off</white>'
+  inspectorall-off: 'Forced outline <red>OFF</red>. Players who turned on their own outline with <white>/acl i</white> still see it'
   reloaded: 'Config and language files reloaded'
   chunk-added: 'Added chunk <white>(<x>, <z>)</white> to <white><name></white> <dark_gray>(<chunks> chunks now)</dark_gray>'
   chunk-removed: 'Removed chunk <white>(<x>, <z>)</white> from <white><name></white> <dark_gray>(<chunks> chunks left)</dark_gray>'
@@ -197,6 +200,7 @@ help:
     randomtick: '/acl randomtick <name|all> [on|off]'
     pos: '/acl pos1 | pos2'
     inspector: '/acl inspector (i)'
+    inspectorall: '/acl inspectorall [on|off] (iall)'
     reload: '/acl reload'
   desc:
     here: 'State of this chunk (registered, groups, load level)'
@@ -214,6 +218,7 @@ help:
     randomtick: 'Toggle random ticks (crop growth, grass spread, ice melt...) in a group (default ON; all = every group)'
     pos: 'Set a selection corner at your position'
     inspector: 'Show only the edges of kept chunks (only you; inspector.mode: edges / full)'
+    inspectorall: 'Force the outline on for every online player (admin; saved across restarts; far-away players get nothing drawn)'
     reload: 'Reload config and language files'
 
 toggles:

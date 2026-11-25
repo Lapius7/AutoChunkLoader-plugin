@@ -25,6 +25,7 @@ inspector:
   post-spacing: 8          # full mode only: a vertical line every N blocks along an edge (corners always have one)
   falloff: 24              # blocks over which the spacing doubles (far = sparse)
   max-particles: 1500      # per update per player; edges are thinned above this, corners never
+  all-max-particles: 600   # per update per player for players shown only by /acl inspectorall (lighter than max-particles)
   color: "#ffa200"         # edges
   size: 1.6                # edge particle size (0.3-4)
   corner-color: "#ff1f6d"

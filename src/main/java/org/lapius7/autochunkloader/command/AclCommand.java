@@ -33,7 +33,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private static final int MAX_CHUNK_COORD = 1_875_000;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
     private static final List<String> SUBS = List.of("help", "add", "here", "remove", "list", "info", "resize",
-            "expand", "rename", "spawn", "randomtick", "pos1", "pos2", "inspector", "i", "reload");
+            "expand", "rename", "spawn", "randomtick", "pos1", "pos2", "inspector", "i", "inspectorall", "iall", "reload");
 
     private static final Set<String> RESERVED = Set.of("sel", "selection", "chunk", "confirm", "all");
     private static final Pattern COORD_TOKEN = Pattern.compile("~(-?\\d+)?|-?\\d+");
@@ -89,6 +89,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
             case "randomtick", "rt" -> { need(s, "randomtick"); toggle(s, r, Flag.RANDOMTICK); }
                 case "pos1", "pos2" -> { need(s, "manage"); pos(s, sub.equals("pos1")); }
                 case "inspector", "i" -> toggleInspector(s, r);
+            case "inspectorall", "iall" -> { need(s, "inspectorall"); toggleInspectorAll(s, r); }
                 case "reload" -> { need(s, "admin"); reload(s); }
                 default -> s.sendMessage(m().err("err.unknown-sub", p("sub", a[0]))
                         .append(Component.space()).append(m().button("btn.help", "hover.help", "/acl help", true)));
@@ -706,6 +707,14 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         if (a.length > 0 && !a[0].equalsIgnoreCase("on") && !a[0].equalsIgnoreCase("off")) throw fail("err.usage", p("usage", "/acl inspector [on|off]"));
         inspector.set(p, on);
         p.sendMessage(m().ok(on ? "ok.inspector-on" : "ok.inspector-off"));
+        if (!on && inspector.forceAll()) p.sendMessage(m().ok("ok.inspector-forced"));
+    }
+
+    private void toggleInspectorAll(CommandSender s, String[] a) {
+        if (a.length > 0 && !a[0].equalsIgnoreCase("on") && !a[0].equalsIgnoreCase("off")) throw fail("err.usage", p("usage", "/acl inspectorall [on|off]"));
+        boolean on = a.length > 0 ? a[0].equalsIgnoreCase("on") : !inspector.forceAll();
+        inspector.setForceAll(on);
+        s.sendMessage(m().ok(on ? "ok.inspectorall-on" : "ok.inspectorall-off"));
     }
 
     private void reload(CommandSender s) {
@@ -716,7 +725,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private void help(CommandSender s) {
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("help.title", p("version", plugin.getPluginMeta().getVersion()))));
-        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "spawn", "randomtick", "pos", "inspector", "reload"}) {
+        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "spawn", "randomtick", "pos", "inspector", "inspectorall", "reload"}) {
             String cmd = m().raw("help.cmd." + k);
             lines.add(Component.empty().append(m().text("ui.indent")).append(
                     m().text("help.row", p("cmd", cmd), p("desc", m().raw("help.desc." + k)))
@@ -739,6 +748,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                     case "spawn" -> "spawn";
             case "randomtick", "rt" -> "randomtick";
                     case "reload" -> "admin";
+                    case "inspectorall", "iall" -> "inspectorall";
                     default -> "use";
                 };
                 if (has(s, perm) || isAdmin(s)) out.add(sub);
@@ -793,7 +803,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                     for (int n = 1; n <= pages && n <= 20; n++) out.add(String.valueOf(n));
                 }
             }
-            case "inspector", "i" -> { if (i == 1) out.addAll(List.of("on", "off")); }
+            case "inspector", "i", "inspectorall", "iall" -> { if (i == 1) out.addAll(List.of("on", "off")); }
             default -> { }
         }
         return filter(out, cur);

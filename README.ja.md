@@ -72,7 +72,8 @@
 | `/acl resize <名前> <+n/-n>` | 四方向に n チャンクずつ拡大・縮小 |
 | `/acl expand [名前]` | 今いるチャンクを含むように拡大 |
 | `/acl rename <旧名> <新名>` | 名前を変更 |
-| `/acl inspector`、`/acl i` | 外周表示の切り替え |
+| `/acl inspector`、`/acl i` | 外周表示の切り替え（プレイヤーごとに保存され、再接続・再起動後も復元） |
+| `/acl inspectorall [on\|off]`、`/acl iall` | 全オンラインプレイヤー（後から入った人も）に外周表示を強制。引数なしで切り替え。再起動後も保持。登録チャンクから遠い人には描画しない |
 | `/acl spawn <名前\|all> [on\|off]` | プレイヤーが近くにいなくてもグループで自然スポーンさせる（既定は off。権限 `autochunkloader.spawn`）。`all on\|off` で操作できる全グループを一括切替、`all` だけで全グループの状態を一覧表示 |
 | `/acl randomtick <名前\|all> [on\|off]` | グループのランダムティック（作物の成長・草の伸び・氷解けなど）の切替（既定は on。権限 `autochunkloader.randomtick`）。`all` の使い方は `spawn all` と同じ |
 | `/acl reload` | 設定と言語ファイルを再読み込み |
@@ -85,6 +86,7 @@
 |---|---|---|
 | `autochunkloader.use` | list、info、here、inspector、help | 全員 |
 | `autochunkloader.manage` | 自分のグループの add、remove、resize、expand、rename | op |
+| `autochunkloader.inspectorall` | `/acl inspectorall` | op |
 | `autochunkloader.admin` | 他人のグループの操作、reload、上限の無視 | op |
 
 ## 設定
@@ -99,7 +101,7 @@
 | `limits.max-chunks-total` | `200` | サーバー全体で保持するチャンク数 |
 | `limits.max-groups-per-player` | `5` | 1 人あたりのグループ数 |
 | `inspector.mode` | `edges` | `edges` または `full` |
-| `inspector.*` | | 半径、高さ、間隔、粒の間隔、線の間隔、距離による間引き、粒子数の上限、色とサイズ |
+| `inspector.*` | | 半径、高さ、間隔、粒の間隔、線の間隔、距離による間引き、粒子数の上限、`all-max-particles`（`inspectorall` だけで表示される人の上限）、色とサイズ |
 | `list.page-size` | `8` | `/acl list` の 1 ページあたりの件数 |
 
 ## 制限

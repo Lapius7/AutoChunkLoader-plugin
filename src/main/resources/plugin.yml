@@ -23,6 +23,9 @@ permissions:
   autochunkloader.randomtick:
     description: toggle random ticks of own groups
     default: op
+  autochunkloader.inspectorall:
+    description: force the chunk outline on for every online player (/acl inspectorall)
+    default: op
   autochunkloader.admin:
     description: operate on any group, reload, ignore limits
     default: op

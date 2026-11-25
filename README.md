@@ -72,7 +72,8 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 | `/acl resize <name> <+n/-n>` | Grow or shrink by n chunks on every side |
 | `/acl expand [name]` | Grow to include the current chunk |
 | `/acl rename <old> <new>` | Rename a group |
-| `/acl inspector`, `/acl i` | Toggle the outline |
+| `/acl inspector`, `/acl i` | Toggle the outline (your choice is saved per player and restored after reconnect or restart) |
+| `/acl inspectorall [on\|off]`, `/acl iall` | Force the outline on for every online player, including later joiners; no argument toggles. Saved across restarts. Players far from any kept chunk get nothing drawn |
 | `/acl spawn <name\|all> [on\|off]` | Natural mob spawning in a group, even with no player nearby (off by default; needs `autochunkloader.spawn`). `all` with `on`/`off` switches every group you may manage; `all` alone lists every group's state |
 | `/acl randomtick <name\|all> [on\|off]` | Random ticks (crop growth, grass spread, ice melt...) in a group (on by default; needs `autochunkloader.randomtick`). `all` works like `spawn all` |
 | `/acl reload` | Reload config and language files |
@@ -85,6 +86,7 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 |---|---|---|
 | `autochunkloader.use` | list, info, here, inspector, help | everyone |
 | `autochunkloader.manage` | add, remove, resize, expand, rename your own groups | op |
+| `autochunkloader.inspectorall` | `/acl inspectorall` | ops |
 | `autochunkloader.admin` | any group, reload, ignore limits | op |
 
 ## Configuration
@@ -99,7 +101,7 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 | `limits.max-chunks-total` | `200` | Chunks kept on the whole server |
 | `limits.max-groups-per-player` | `5` | Groups per player |
 | `inspector.mode` | `edges` | `edges` or `full` |
-| `inspector.*` | | radius, height, interval, step, spacing, falloff, particle cap, colours and sizes |
+| `inspector.*` | | radius, height, interval, step, spacing, falloff, particle cap, `all-max-particles` (cap for players shown only by `inspectorall`), colours and sizes |
 | `list.page-size` | `8` | Groups per page of `/acl list` |
 
 ## Limits

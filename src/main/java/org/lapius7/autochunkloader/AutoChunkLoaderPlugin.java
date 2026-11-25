@@ -44,6 +44,7 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
         groups.applyAll();
 
         inspector = new Inspector(this, groups);
+        inspector.load();
         inspector.start();
 
         spawner = new SpawnService(this, groups);
@@ -87,7 +88,6 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        inspector.remove(e.getPlayer().getUniqueId());
         command.forget(e.getPlayer().getUniqueId());
     }
 }

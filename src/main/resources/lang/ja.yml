@@ -106,6 +106,9 @@ ok:
   pos2: 'pos2 を <white>(<x>, <z>)</white> に設定しました'
   inspector-on: '境界表示を <green>ON</green> にしました。登録チャンクの外周の辺が自分にだけ見えます(config.yml の <white>inspector.mode</white> で edges / full を切替)'
   inspector-off: '境界表示を <red>OFF</red> にしました'
+  inspector-forced: '<gray>管理者が全員に境界表示を強制しているため、表示は続きます</gray>'
+  inspectorall-on: '全オンラインプレイヤーに境界表示を強制 <green>ON</green> にしました(再接続・再起動後も有効)。解除は <white>/acl inspectorall off</white>'
+  inspectorall-off: '境界表示の強制を <red>OFF</red> にしました。<white>/acl i</white> で個人が ON にしている人には引き続き表示されます'
   reloaded: '設定と言語ファイルを読み直しました'
   chunk-added: 'チャンク <white>(<x>, <z>)</white> を <white><name></white> に足しました <dark_gray>(計 <chunks> チャンク)</dark_gray>'
   chunk-removed: 'チャンク <white>(<x>, <z>)</white> を <white><name></white> から外しました <dark_gray>(残り <chunks> チャンク)</dark_gray>'
@@ -197,6 +200,7 @@ help:
     randomtick: '/acl randomtick <名前|all> [on|off]'
     pos: '/acl pos1 | pos2'
     inspector: '/acl inspector (i)'
+    inspectorall: '/acl inspectorall [on|off] (iall)'
     reload: '/acl reload'
   desc:
     here: '今いるチャンクの状態 (登録・グループ・ロードレベル)'
@@ -214,6 +218,7 @@ help:
     randomtick: 'ランダムティック(作物成長・草の伸び・氷解けなど)の切替。既定は ON。all で全グループ'
     pos: '範囲選択の 2 点を今の位置に設定'
     inspector: 'ロード維持中チャンクの外周の辺だけを表示 (自分だけ。inspector.mode: edges / full)'
+    inspectorall: '全オンラインプレイヤーに境界表示を強制 (管理者用。再起動後も保持。登録チャンクから遠い人には描画しない)'
     reload: '設定と言語ファイルを再読み込み'
 
 toggles:

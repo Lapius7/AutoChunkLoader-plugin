@@ -4,13 +4,18 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.lapius7.autochunkloader.AutoChunkLoaderPlugin;
 import org.lapius7.autochunkloader.loader.GroupManager;
 
+import java.io.IOException;
+import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Level;
 
 /** Draws the outer outline of all kept chunks with particles, sent only to players who toggled it on. */
 public final class Inspector {
@@ -19,9 +24,13 @@ public final class Inspector {
 
     private final AutoChunkLoaderPlugin plugin;
     private final GroupManager mgr;
-    private final Set<UUID> enabled = new HashSet<>();
-    /** Outline of one world: boundary segments plus the true corner vertices (block coords). */
-    private record Outline(List<Seg> segs, List<double[]> corners) { }
+    /** Players who toggled their own outline. Kept while offline and saved to inspector.yml. */
+    private final Map<UUID, Boolean> own = new HashMap<>();
+    /** Admin switch (/acl inspectorall): draws for every online player regardless of own. */
+    private boolean forceAll;
+    private final Path file;
+    /** Outline of one world: boundary segments, the true corner vertices and the bounding box {minX, minZ, maxX, maxZ} (block coords). */
+    private record Outline(List<Seg> segs, List<double[]> corners, double[] bounds) { }
 
     private final Map<String, Outline> cache = new HashMap<>();
     private int cacheVersion = -1;
@@ -30,15 +39,55 @@ public final class Inspector {
     public Inspector(AutoChunkLoaderPlugin plugin, GroupManager mgr) {
         this.plugin = plugin;
         this.mgr = mgr;
+        this.file = plugin.getDataFolder().toPath().resolve("inspector.yml");
     }
 
-    public boolean enabled(Player p) { return enabled.contains(p.getUniqueId()); }
+    /** The player's own toggle (what /acl i shows), ignoring the forced-all switch. */
+    public boolean enabled(Player p) { return own.getOrDefault(p.getUniqueId(), false); }
 
     public void set(Player p, boolean on) {
-        if (on) enabled.add(p.getUniqueId()); else enabled.remove(p.getUniqueId());
+        own.put(p.getUniqueId(), on);
+        save();
     }
 
-    public void remove(UUID u) { enabled.remove(u); }
+    public boolean forceAll() { return forceAll; }
+
+    public void setForceAll(boolean on) {
+        forceAll = on;
+        save();
+    }
+
+    // ---- persistence (inspector.yml) ----
+    public void load() {
+        own.clear();
+        forceAll = false;
+        if (!Files.exists(file)) return;
+        YamlConfiguration y = YamlConfiguration.loadConfiguration(file.toFile());
+        forceAll = y.getBoolean("all", false);
+        ConfigurationSection sec = y.getConfigurationSection("players");
+        if (sec != null) for (String k : sec.getKeys(false)) {
+            try { own.put(UUID.fromString(k), sec.getBoolean(k)); }
+            catch (IllegalArgumentException e) { plugin.getLogger().warning("Skipping invalid UUID '" + k + "' in inspector.yml"); }
+        }
+    }
+
+    private void save() {
+        YamlConfiguration y = new YamlConfiguration();
+        y.set("all", forceAll);
+        for (Map.Entry<UUID, Boolean> e : own.entrySet()) y.set("players." + e.getKey(), e.getValue());
+        try {
+            Files.createDirectories(file.getParent());
+            Path tmp = file.resolveSibling("inspector.yml.tmp");
+            Files.writeString(tmp, y.saveToString());
+            try {
+                Files.move(tmp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to save inspector.yml", e);
+        }
+    }
 
     public void start() {
         stop();
@@ -52,7 +101,6 @@ public final class Inspector {
 
     public void shutdown() {
         stop();
-        enabled.clear();
         cache.clear();
     }
 
@@ -86,7 +134,12 @@ public final class Inspector {
             if (n == 0 || n == 4 || straight) continue;
             corners.add(new double[]{vx * 16.0, vz * 16.0});
         }
-        return new Outline(out, corners);
+        double[] b = {Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE};
+        for (Seg g : out) {
+            b[0] = Math.min(b[0], Math.min(g.x1, g.x2)); b[1] = Math.min(b[1], Math.min(g.z1, g.z2));
+            b[2] = Math.max(b[2], Math.max(g.x1, g.x2)); b[3] = Math.max(b[3], Math.max(g.z1, g.z2));
+        }
+        return new Outline(out, corners, b);
     }
 
     /** Distance-based spacing multiplier: 1 near, up to 4 far. */
@@ -158,7 +211,7 @@ public final class Inspector {
     }
 
     private void tick() {
-        if (enabled.isEmpty()) return;
+        if (!forceAll && !own.containsValue(true)) return;
         FileConfiguration c = plugin.getConfig();
         double radiusBlocks = Math.max(1, c.getInt("inspector.radius", 6)) * 16.0;
         double height = Math.max(1, c.getDouble("inspector.height", 16));
@@ -168,19 +221,24 @@ public final class Inspector {
         double falloff = Math.max(8, c.getDouble("inspector.falloff", 24));
         boolean edges = !"full".equalsIgnoreCase(c.getString("inspector.mode", "edges"));
         int max = Math.max(50, c.getInt("inspector.max-particles", 1500));
+        int maxForced = Math.max(50, c.getInt("inspector.all-max-particles", 600));
         Color edgeColor = parseColor(c.getString("inspector.color", "#ffa200"));
         Color cornerColor = parseColor(c.getString("inspector.corner-color", "#ff1f6d"));
         float size = clampSize(c.getDouble("inspector.size", 1.6));
         float cornerSize = clampSize(c.getDouble("inspector.corner-size", 2.4));
 
-        for (Iterator<UUID> it = enabled.iterator(); it.hasNext(); ) {
-            Player p = plugin.getServer().getPlayer(it.next());
-            if (p == null) { it.remove(); continue; }
+        for (Player p : plugin.getServer().getOnlinePlayers()) {
+            boolean mine = own.getOrDefault(p.getUniqueId(), false);
+            if (!mine && !forceAll) continue;
             World w = p.getWorld();
             Outline o = outline(w.getName());
             if (o.segs.isEmpty()) continue;
             Location eye = p.getEyeLocation();
             double ex = eye.getX(), ez = eye.getZ(), ey = eye.getY();
+            // too far from every registered chunk: draw nothing, skip the per-segment work
+            if (ex < o.bounds[0] - radiusBlocks || ex > o.bounds[2] + radiusBlocks
+                    || ez < o.bounds[1] - radiusBlocks || ez > o.bounds[3] + radiusBlocks) continue;
+            int limit = mine ? max : maxForced;
             double yLo = Math.max(w.getMinHeight(), ey - height), yHi = Math.min(w.getMaxHeight(), ey + height);
 
             List<double[]> pts;
@@ -194,7 +252,7 @@ public final class Inspector {
             if (pts.isEmpty()) continue;
 
             long nCorner = pts.stream().filter(q -> q[3] == 1).count();
-            int stride = Math.max(1, (int) Math.ceil((pts.size() - nCorner) / (double) Math.max(50, max - nCorner)));
+            int stride = Math.max(1, (int) Math.ceil((pts.size() - nCorner) / (double) Math.max(50, limit - nCorner)));
             var edge = Particle.DUST.builder().receivers(p).color(edgeColor, size).count(1).force(true);
             var corner = Particle.DUST.builder().receivers(p).color(cornerColor, cornerSize).count(1).force(true);
             int ei = 0;
