@@ -73,6 +73,7 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 | `/acl expand [name]` | Grow to include the current chunk |
 | `/acl rename <old> <new>` | Rename a group |
 | `/acl inspector`, `/acl i` | Toggle the outline |
+| `/acl spawn <name> [on\|off]` | Natural mob spawning in a group, even with no player nearby (off by default; needs `autochunkloader.spawn`) |
 | `/acl reload` | Reload config and language files |
 
 </details>
@@ -106,9 +107,13 @@ Stand in a chunk and run `/acl add`. The plugin keeps that chunk loaded until yo
 > A ticket keeps a chunk loaded and running, but vanilla ties random ticks and mob spawning to nearby players. In tests on Paper 26.3 (chunks about 3000 blocks from any player, load level `ENTITY_TICKING`):
 > - Hoppers kept working.
 > - Crops did not grow far away (age 0 after 3 minutes, while the same crop near a player reached age 7).
-> - No mobs spawned in the far group, while mobs spawned near a player.
+> - No mobs spawned in the far group, while mobs spawned near a player. `/acl spawn <name> on` fixes this (see below).
 >
-> Expect machines that move items to work, and farms and mob traps to need a player nearby.
+> Expect machines that move items to work, and crop farms to need a player nearby.
+>
+> **Natural spawning (`/acl spawn <name> on`).** For a group with spawning on, chunks that have no player within 128 blocks get vanilla natural spawning: the same spawn positions, biome mobs, light and floor rules, spawn interval and group sizes. Only the "a player must be within 128 blocks" rule is dropped, and only for these chunks. Mobs there do not despawn while the player is away. Chunks near a player stay vanilla. At least one player must be online in that world.
+> - Mob cap: each group gets Paper's per-player cap (for example 70 monsters), plus one more for every 289 chunks. A small trap far from everyone therefore fills up to a full cap by itself, while next to a player the cap is shared with everything around them, so a far trap can fill faster than the same trap beside a player.
+> - Tested on Paper 26.3: a dark-room trap with the player over 128 blocks away spawned the same mobs (zombie, skeleton, creeper, spider, enderman, witch and others) and held its count for 3 minutes. With the monster cap raised so it did not limit either case, near and far gave similar counts.
 
 <details>
 <summary>Build from source</summary>

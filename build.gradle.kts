@@ -1,5 +1,6 @@
 plugins {
     java
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.24"
 }
 
 group = "org.lapius7"
@@ -11,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.3.build.262-stable")
+    paperweight.paperDevBundle("26.3.build.262-stable")
 }
 
 java {
