@@ -15,6 +15,9 @@ limits:
 spawn:
   enabled: true            # false = feature off for everyone
 
+undo:
+  limit: 20   # /acl undo steps kept per player (memory only); 0 = off
+
 inspector:
   mode: edges              # edges = only the outline edges (top/bottom lines + corner pillars); full = rings and posts over the whole wall
   radius: 6                # chunks around the player to draw

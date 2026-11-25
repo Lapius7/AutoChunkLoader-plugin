@@ -12,6 +12,7 @@ import org.lapius7.autochunkloader.inspector.Inspector;
 import org.lapius7.autochunkloader.lang.Messages;
 import org.lapius7.autochunkloader.loader.GroupManager;
 import org.lapius7.autochunkloader.spawn.SpawnService;
+import org.lapius7.autochunkloader.undo.UndoService;
 import org.lapius7.autochunkloader.randomtick.RandomTickService;
 
 public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener {
@@ -22,6 +23,7 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
     private SpawnService spawner;
     private RandomTickService randomTicks;
     private AclCommand command;
+    private UndoService undo;
 
     public Messages messages() { return messages; }
 
@@ -51,7 +53,8 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
         spawner.start();
         randomTicks = new RandomTickService(this, groups);
         randomTicks.start();
-        command = new AclCommand(this, groups, inspector, spawner, randomTicks);
+        undo = new UndoService(this, groups);
+        command = new AclCommand(this, groups, inspector, spawner, randomTicks, undo);
         PluginCommand pc = getCommand("acl");
         if (pc != null) {
             pc.setExecutor(command);
@@ -89,5 +92,6 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         command.forget(e.getPlayer().getUniqueId());
+        undo.forget(e.getPlayer().getUniqueId());
     }
 }

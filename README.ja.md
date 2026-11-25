@@ -73,6 +73,7 @@
 | `/acl expand [名前]` | 今いるチャンクを含むように拡大 |
 | `/acl rename <旧名> <新名>` | 名前を変更 |
 | `/acl inspector`、`/acl i` | 外周表示の切り替え（プレイヤーごとに保存され、再接続・再起動後も復元） |
+| `/acl undo`、`/acl redo` | 自分の直前の変更（作成・削除・名前変更・リサイズ・チャンクの追加/削除・spawn/randomtick の切替）を取り消す/やり直す。`undo.limit`（既定20）まで繰り返せる。履歴はプレイヤーごとで、再起動や退出で消える。その後に他の操作で対象が変わっていると拒否される。変更ごとにクリックできる [取り消し] ボタンも出る |
 | `/acl inspectorall [on\|off]`、`/acl iall` | 全オンラインプレイヤー（後から入った人も）に外周表示を強制。引数なしで切り替え。再起動後も保持。登録チャンクから遠い人には描画しない |
 | `/acl spawn <名前\|all> [on\|off]` | プレイヤーが近くにいなくてもグループで自然スポーンさせる（既定は off。権限 `autochunkloader.spawn`）。`all on\|off` で操作できる全グループを一括切替、`all` だけで全グループの状態を一覧表示 |
 | `/acl randomtick <名前\|all> [on\|off]` | グループのランダムティック（作物の成長・草の伸び・氷解けなど）の切替（既定は on。権限 `autochunkloader.randomtick`）。`all` の使い方は `spawn all` と同じ |
@@ -101,6 +102,7 @@
 | `limits.max-chunks-total` | `200` | サーバー全体で保持するチャンク数 |
 | `limits.max-groups-per-player` | `5` | 1 人あたりのグループ数 |
 | `inspector.mode` | `edges` | `edges` または `full` |
+| `undo.limit` | `20` | `/acl undo` が覚える件数（プレイヤーごと、`0` で無効） |
 | `inspector.*` | | 半径、高さ、間隔、粒の間隔、線の間隔、距離による間引き、粒子数の上限、`all-max-particles`（`inspectorall` だけで表示される人の上限）、色とサイズ |
 | `list.page-size` | `8` | `/acl list` の 1 ページあたりの件数 |
 

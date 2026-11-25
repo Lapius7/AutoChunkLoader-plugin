@@ -33,7 +33,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private static final int MAX_CHUNK_COORD = 1_875_000;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
     private static final List<String> SUBS = List.of("help", "add", "here", "remove", "list", "info", "resize",
-            "expand", "rename", "spawn", "randomtick", "pos1", "pos2", "inspector", "i", "inspectorall", "iall", "reload");
+            "expand", "rename", "spawn", "randomtick", "pos1", "pos2", "inspector", "i", "inspectorall", "iall", "undo", "redo", "reload");
 
     private static final Set<String> RESERVED = Set.of("sel", "selection", "chunk", "confirm", "all");
     private static final Pattern COORD_TOKEN = Pattern.compile("~(-?\\d+)?|-?\\d+");
@@ -53,7 +53,9 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     }
 
     public AclCommand(AutoChunkLoaderPlugin plugin, GroupManager mgr, Inspector inspector, org.lapius7.autochunkloader.spawn.SpawnService spawner,
-                      org.lapius7.autochunkloader.randomtick.RandomTickService randomTicks) {
+                      org.lapius7.autochunkloader.randomtick.RandomTickService randomTicks,
+                      org.lapius7.autochunkloader.undo.UndoService undo) {
+        this.undo = undo;
         this.plugin = plugin;
         this.spawner = spawner;
         this.randomTicks = randomTicks;
@@ -63,6 +65,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
 
     private final org.lapius7.autochunkloader.spawn.SpawnService spawner;
     private final org.lapius7.autochunkloader.randomtick.RandomTickService randomTicks;
+    private final org.lapius7.autochunkloader.undo.UndoService undo;
 
     private Messages m() { return plugin.messages(); }
     private Fail fail(String key, net.kyori.adventure.text.minimessage.tag.resolver.TagResolver... r) { return new Fail(m().err(key, r)); }
@@ -72,6 +75,40 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     // =================================================================== execute
     @Override
     public boolean onCommand(CommandSender s, Command cmd, String label, String[] a) {
+        String first = a.length == 0 ? "" : a[0].toLowerCase(Locale.ROOT);
+        boolean tracked = s instanceof Player && UNDOABLE.contains(first) && undo.limit() > 0;
+        var before = tracked ? undo.capture() : null;
+        try {
+            return run(s, a);
+        } finally {
+            if (tracked) {
+                var d = undo.record(((Player) s).getUniqueId(), "/acl " + String.join(" ", a), before);
+                if (d != null) s.sendMessage(Component.empty().append(m().text("ui.indent"))
+                        .append(m().button("btn.undo", "hover.undo", "/acl undo " + d.id(), true)));
+            }
+        }
+    }
+
+    private static final Set<String> UNDOABLE = Set.of("add", "remove", "rm", "delete", "del", "resize", "expand", "rename", "spawn", "randomtick", "rt");
+
+    private void undoRedo(CommandSender s, String[] r, boolean isUndo) {
+        Player p = player(s);
+        Integer id = null;
+        if (r.length > 0) { try { id = Integer.parseInt(r[0]); } catch (NumberFormatException e) { throw fail("err.usage", p("usage", "/acl " + (isUndo ? "undo" : "redo"))); } }
+        try {
+            var d = isUndo ? undo.undo(p.getUniqueId(), id) : undo.redo(p.getUniqueId(), id);
+            Component msg = m().ok(isUndo ? "ok.undone" : "ok.redone", p("cmd", d.label()), p("left", d.remaining()));
+            int other = isUndo ? undo.redoSize(p.getUniqueId()) : undo.undoSize(p.getUniqueId());
+            if (other > 0) msg = msg.append(Component.space()).append(isUndo
+                    ? m().button("btn.redo", "hover.redo", "/acl redo " + d.id(), true)
+                    : m().button("btn.undo", "hover.undo", "/acl undo " + d.id(), true));
+            p.sendMessage(msg);
+        } catch (org.lapius7.autochunkloader.undo.UndoService.Refused x) {
+            throw fail(x.key, p("name", x.arg == null ? "" : x.arg));
+        }
+    }
+
+    private boolean run(CommandSender s, String[] a) {
         try {
             String sub = a.length == 0 ? "help" : a[0].toLowerCase(Locale.ROOT);
             String[] r = a.length == 0 ? a : Arrays.copyOfRange(a, 1, a.length);
@@ -90,7 +127,9 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                 case "pos1", "pos2" -> { need(s, "manage"); pos(s, sub.equals("pos1")); }
                 case "inspector", "i" -> toggleInspector(s, r);
             case "inspectorall", "iall" -> { need(s, "inspectorall"); toggleInspectorAll(s, r); }
-                case "reload" -> { need(s, "admin"); reload(s); }
+                case "undo" -> undoRedo(s, r, true);
+            case "redo" -> undoRedo(s, r, false);
+            case "reload" -> { need(s, "admin"); reload(s); }
                 default -> s.sendMessage(m().err("err.unknown-sub", p("sub", a[0]))
                         .append(Component.space()).append(m().button("btn.help", "hover.help", "/acl help", true)));
             }
@@ -725,7 +764,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private void help(CommandSender s) {
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("help.title", p("version", plugin.getPluginMeta().getVersion()))));
-        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "spawn", "randomtick", "pos", "inspector", "inspectorall", "reload"}) {
+        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "spawn", "randomtick", "pos", "inspector", "inspectorall", "undo", "redo", "reload"}) {
             String cmd = m().raw("help.cmd." + k);
             lines.add(Component.empty().append(m().text("ui.indent")).append(
                     m().text("help.row", p("cmd", cmd), p("desc", m().raw("help.desc." + k)))
