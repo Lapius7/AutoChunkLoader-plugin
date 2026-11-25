@@ -8,6 +8,13 @@ limits:
   max-chunks-total: 200    # whole-server cap on kept chunks
   max-groups-per-player: 5
 
+# Natural mob spawning for groups with `/acl spawn <group> on` (default off per group).
+# Vanilla spawning (biome mobs, light, spawn interval, mob cap) runs in the group's chunks even when no
+# player is within 128 blocks, and mobs there are kept from despawning. At least one player must be
+# online in that world (vanilla rule). Chunks that have a player nearby are left to vanilla.
+spawn:
+  enabled: true            # false = feature off for everyone
+
 inspector:
   mode: edges              # edges = only the outline edges (top/bottom lines + corner pillars); full = rings and posts over the whole wall
   radius: 6                # chunks around the player to draw

@@ -11,11 +11,13 @@ import org.lapius7.autochunkloader.command.AclCommand;
 import org.lapius7.autochunkloader.inspector.Inspector;
 import org.lapius7.autochunkloader.lang.Messages;
 import org.lapius7.autochunkloader.loader.GroupManager;
+import org.lapius7.autochunkloader.spawn.SpawnService;
 
 public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener {
     private Messages messages;
     private GroupManager groups;
     private Inspector inspector;
+    private SpawnService spawner;
     private AclCommand command;
 
     public Messages messages() { return messages; }
@@ -33,7 +35,9 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
         inspector = new Inspector(this, groups);
         inspector.start();
 
-        command = new AclCommand(this, groups, inspector);
+        spawner = new SpawnService(this, groups);
+        spawner.start();
+        command = new AclCommand(this, groups, inspector, spawner);
         PluginCommand pc = getCommand("acl");
         if (pc != null) {
             pc.setExecutor(command);
@@ -46,6 +50,7 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
     @Override
     public void onDisable() {
         if (inspector != null) inspector.shutdown();
+        if (spawner != null) spawner.stop();
         if (groups != null) {
             groups.releaseAll();
             groups.save();
@@ -57,6 +62,7 @@ public final class AutoChunkLoaderPlugin extends JavaPlugin implements Listener 
         reloadConfig();
         messages.load(getConfig().getString("language", "ja"));
         inspector.start();
+        spawner.start();
     }
 
     @EventHandler

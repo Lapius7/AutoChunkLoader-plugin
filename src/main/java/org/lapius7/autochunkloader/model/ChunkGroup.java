@@ -19,6 +19,8 @@ public final class ChunkGroup {
     private final Instant created;
     /** true while group's tickets are held (runtime only). */
     private boolean active;
+    /** Natural mob spawning is run for this group's chunks as if a player were near (persisted). */
+    private boolean spawn;
 
     public ChunkGroup(String name, String world, int minX, int minZ, int maxX, int maxZ, UUID owner, Instant created) {
         this(name, world, owner, created);
@@ -36,6 +38,9 @@ public final class ChunkGroup {
         this.owner = owner == null ? NO_OWNER : owner;
         this.created = created == null ? Instant.now() : created;
     }
+
+    public boolean spawn() { return spawn; }
+    public void spawn(boolean v) { this.spawn = v; }
 
     public static long pack(int x, int z) { return ((long) x << 32) | (z & 0xFFFFFFFFL); }
     public static int unpackX(long k) { return (int) (k >> 32); }

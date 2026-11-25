@@ -99,6 +99,9 @@ public final class GroupManager {
         changed();
     }
 
+    /** Persist a flag change (spawn on/off). */
+    public void touch() { changed(); }
+
     private void changed() {
         version++;
         save();
@@ -192,6 +195,7 @@ public final class GroupManager {
                 } else {
                     g = new ChunkGroup(name, world, b.get(0), b.get(1), b.get(2), b.get(3), owner, created);
                 }
+                g.spawn(s.getBoolean("spawn", false));
                 groups.put(name.toLowerCase(Locale.ROOT), g);
             } catch (Exception e) {
                 plugin.getLogger().warning("Skipping invalid group '" + name + "' in data.yml: " + e.getMessage());
@@ -214,6 +218,7 @@ public final class GroupManager {
             }
             y.set(p + ".owner", g.owner().toString());
             y.set(p + ".created", g.created().toString());
+            if (g.spawn()) y.set(p + ".spawn", true);
         }
         try {
             Files.createDirectories(dataFile.getParent());

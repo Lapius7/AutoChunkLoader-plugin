@@ -17,6 +17,9 @@ permissions:
   autochunkloader.manage:
     description: add / remove / resize / rename your own groups
     default: op
+  autochunkloader.spawn:
+    description: toggle natural spawning of own groups
+    default: op
   autochunkloader.admin:
     description: operate on any group, reload, ignore limits
     default: op

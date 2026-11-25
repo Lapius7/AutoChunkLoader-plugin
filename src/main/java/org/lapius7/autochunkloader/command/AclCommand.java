@@ -33,7 +33,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private static final int MAX_CHUNK_COORD = 1_875_000;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
     private static final List<String> SUBS = List.of("help", "add", "here", "remove", "list", "info", "resize",
-            "expand", "rename", "pos1", "pos2", "inspector", "i", "reload");
+            "expand", "rename", "spawn", "pos1", "pos2", "inspector", "i", "reload");
 
     private static final Set<String> RESERVED = Set.of("sel", "selection", "chunk", "confirm");
     private static final Pattern COORD_TOKEN = Pattern.compile("~(-?\\d+)?|-?\\d+");
@@ -52,11 +52,14 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         Fail(Component msg) { super(null, null, false, false); this.msg = msg; }
     }
 
-    public AclCommand(AutoChunkLoaderPlugin plugin, GroupManager mgr, Inspector inspector) {
+    public AclCommand(AutoChunkLoaderPlugin plugin, GroupManager mgr, Inspector inspector, org.lapius7.autochunkloader.spawn.SpawnService spawner) {
         this.plugin = plugin;
+        this.spawner = spawner;
         this.mgr = mgr;
         this.inspector = inspector;
     }
+
+    private final org.lapius7.autochunkloader.spawn.SpawnService spawner;
 
     private Messages m() { return plugin.messages(); }
     private Fail fail(String key, net.kyori.adventure.text.minimessage.tag.resolver.TagResolver... r) { return new Fail(m().err(key, r)); }
@@ -79,6 +82,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
                 case "resize" -> { need(s, "manage"); resize(s, r); }
                 case "expand" -> { need(s, "manage"); expand(s, r); }
                 case "rename" -> { need(s, "manage"); rename(s, r); }
+                case "spawn" -> { need(s, "spawn"); spawn(s, r); }
                 case "pos1", "pos2" -> { need(s, "manage"); pos(s, sub.equals("pos1")); }
                 case "inspector", "i" -> toggleInspector(s, r);
                 case "reload" -> { need(s, "admin"); reload(s); }
@@ -520,6 +524,10 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
             lines.add(m().text("row", p("k", m().raw("lbl.status")), c("v", m().text("info.inactive"))));
         }
 
+        lines.add(m().text("row", p("k", m().raw("lbl.spawn")), c("v", !spawner.enabled() ? m().text("info.spawn-disabled")
+                : m().text(g.spawn() ? "info.spawn-on" : "info.spawn-off"))));
+        lines.add(m().text("row", p("k", m().raw("lbl.randomtick")), c("v", m().text("info.randomtick-always"))));
+
         Component btns = Component.empty().append(m().text("ui.indent"));
         if (s instanceof Player) btns = btns.append(m().button("btn.inspector", "hover.inspector", "/acl inspector", true)).append(Component.space());
         if (canManage(s, g)) {
@@ -601,6 +609,19 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(m().ok("ok.renamed", p("old", old), p("name", g.name())));
     }
 
+    private void spawn(CommandSender s, String[] a) {
+        if (a.length < 1 || a.length > 2) throw fail("err.usage", p("usage", "/acl spawn <name> [on|off]"));
+        ChunkGroup g = ownGroup(s, a[0]);
+        boolean v;
+        if (a.length == 1) v = !g.spawn();
+        else if (a[1].equalsIgnoreCase("on")) v = true;
+        else if (a[1].equalsIgnoreCase("off")) v = false;
+        else throw fail("err.usage", p("usage", "/acl spawn <name> [on|off]"));
+        g.spawn(v);
+        mgr.touch();
+        s.sendMessage(m().ok(v ? "ok.spawn-on" : "ok.spawn-off", p("name", g.name())));
+    }
+
     // =================================================================== pos1 / pos2
     private void pos(CommandSender s, boolean first) {
         Player p = player(s);
@@ -634,7 +655,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
     private void help(CommandSender s) {
         List<Component> lines = new ArrayList<>();
         lines.add(rule(m().text("help.title", p("version", plugin.getPluginMeta().getVersion()))));
-        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "pos", "inspector", "reload"}) {
+        for (String k : new String[]{"here", "add", "add-range", "add-chunk", "remove", "remove-chunk", "list", "info", "resize", "expand", "rename", "spawn", "pos", "inspector", "reload"}) {
             String cmd = m().raw("help.cmd." + k);
             lines.add(Component.empty().append(m().text("ui.indent")).append(
                     m().text("help.row", p("cmd", cmd), p("desc", m().raw("help.desc." + k)))
@@ -654,6 +675,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
             for (String sub : SUBS) {
                 String perm = switch (sub) {
                     case "add", "remove", "resize", "expand", "rename", "pos1", "pos2" -> "manage";
+                    case "spawn" -> "spawn";
                     case "reload" -> "admin";
                     default -> "use";
                 };
@@ -699,6 +721,7 @@ public final class AclCommand implements CommandExecutor, TabCompleter {
             }
             case "expand" -> { if (i == 1) out.addAll(names(s, true)); }
             case "rename" -> { if (i == 1) out.addAll(names(s, true)); else if (i == 2) out.add("<new-name>"); }
+            case "spawn" -> { if (i == 1) out.addAll(names(s, true)); else if (i == 2) out.addAll(List.of("on", "off")); }
             case "list", "ls" -> {
                 if (i == 1) {
                     int pages = Math.max(1, (mgr.all().size() + pageSize() - 1) / pageSize());
