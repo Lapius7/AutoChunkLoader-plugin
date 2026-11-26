@@ -1,6 +1,7 @@
 package org.lapius7.autochunkloader.spawn;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
@@ -172,6 +173,10 @@ public final class SpawnService implements Listener {
         final List<MobCategory> categories = new ArrayList<>();
         final int[] limits = new int[MobCategory.values().length];
         boolean ok;
+        /** Served chunks of this tick and, per chunk, the mobs per category within the cap range. */
+        int[] sx = new int[0], sz = new int[0];
+        int[][] near = new int[0][];
+        int range;
     }
 
     private void tick() {
@@ -253,22 +258,31 @@ public final class SpawnService implements Listener {
     private void processWorld(Ctx cx, String world, List<LevelChunk> chunks) throws Throwable {
         if (chunks.isEmpty()) return;
         Collections.shuffle(chunks, ThreadLocalRandom.current());
-        int[] cnt = countMobs(cx, world);
         int spawnable = (int) stateSpawnableChunks.invoke(cx.state);
-        int[] cap = new int[MobCategory.values().length];
         boolean perPlayer = cx.level.paperConfig().entities.spawning.perPlayerMobSpawns;
+        cx.range = perPlayer ? Math.max(1, cx.level.spigotConfig.mobSpawnRange) : Integer.MAX_VALUE;
+        cx.sx = new int[chunks.size()];
+        cx.sz = new int[chunks.size()];
+        cx.near = new int[chunks.size()][MobCategory.values().length];
+        for (int i = 0; i < chunks.size(); i++) {
+            cx.sx[i] = chunks.get(i).getPos().x();
+            cx.sz[i] = chunks.get(i).getPos().z();
+        }
+        countMobs(cx, world);
+        int[] cap = new int[MobCategory.values().length];
         for (MobCategory cat : cx.categories) {
             int limit = cx.limits[cat.ordinal()];
             // Paper's default (per-player-mob-spawns) gives every player a flat limit; vanilla scales it by chunk count.
             cap[cat.ordinal()] = perPlayer ? limit : (int) ((long) limit * (spawnable + chunks.size()) / AREA_CHUNKS);
         }
-        for (LevelChunk chunk : chunks) {
+        for (int i = 0; i < chunks.size(); i++) {
+            LevelChunk chunk = chunks.get(i);
             chunk.incrementInhabitedTime();
             cx.level.tickThunder(chunk);
             for (MobCategory cat : cx.categories) {
-                int left = cap[cat.ordinal()] - cnt[cat.ordinal()];
+                int left = cap[cat.ordinal()] - cx.near[i][cat.ordinal()];
                 if (left <= 0) continue;
-                spawnCategoryForChunk(cx, cat, chunk, left, cnt);
+                spawnCategoryForChunk(cx, cat, chunk, left);
             }
         }
     }
@@ -277,17 +291,32 @@ public final class SpawnService implements Listener {
      * Mob counts per category in the whole world, counted like NaturalSpawner.createState (persistent mobs
      * are skipped; Paper's count-all-mobs-for-spawning is honoured). Also protects mobs in served chunks.
      */
-    private int[] countMobs(Ctx cx, String world) {
-        int[] cnt = new int[MobCategory.values().length];
+    private void countMobs(Ctx cx, String world) {
         boolean countAll = cx.level.paperConfig().entities.spawning.countAllMobsForSpawning;
         Set<Long> ok = served.getOrDefault(world, Set.of());
         for (net.minecraft.world.entity.Entity en : cx.level.getAllEntities()) {
+            if (en instanceof Player) continue;
+            int ex = en.blockPosition().getX() >> 4, ez = en.blockPosition().getZ() >> 4;
+            boolean inServed = ok.contains(ChunkGroup.pack(ex, ez));
+            // No player is near a served chunk, so Spigot's activation range would leave everything in it frozen
+            // (no walking, no water flow, no falling items). Keep it active for the next tick, as if a player stood there.
+            if (inServed) en.activatedTick = MinecraftServer.currentTick + 1L;
             if (!(en instanceof Mob mob)) continue;
-            long key = ChunkGroup.pack(mob.blockPosition().getX() >> 4, mob.blockPosition().getZ() >> 4);
-            if (counts(mob, countAll, tagged.contains(mob))) cnt[mob.getType().getCategory().ordinal()]++;
-            if (ok.contains(key) && mob.getType().getCategory() != MobCategory.MISC && isNaturalOrChunkGen(mob)) protect(mob);
+            if (inServed) mob.setNoActionTime(0); // else random strolling stops after 100 ticks without a player within 32 blocks
+            if (counts(mob, countAll, tagged.contains(mob))) bump(cx, mob.getType().getCategory(), ex, ez);
+            if (inServed && mob.getType().getCategory() != MobCategory.MISC && isNaturalOrChunkGen(mob)) protect(mob);
         }
-        return cnt;
+    }
+
+    /**
+     * Adds a mob to the count of every served chunk whose cap it counts against. Like Paper's per-player
+     * count (mobs around the player), a served chunk only counts mobs within the mob spawn range around it,
+     * not every mob in the world.
+     */
+    private void bump(Ctx cx, MobCategory cat, int chunkX, int chunkZ) {
+        for (int i = 0; i < cx.sx.length; i++) {
+            if (Math.abs(cx.sx[i] - chunkX) <= cx.range && Math.abs(cx.sz[i] - chunkZ) <= cx.range) cx.near[i][cat.ordinal()]++;
+        }
     }
 
     private boolean isNaturalOrChunkGen(Mob mob) {
@@ -303,10 +332,10 @@ public final class SpawnService implements Listener {
 
     // ------------------------------------------------------------------ vanilla spawn attempt
 
-    private void spawnCategoryForChunk(Ctx cx, MobCategory cat, LevelChunk chunk, int maxSpawns, int[] cnt) {
+    private void spawnCategoryForChunk(Ctx cx, MobCategory cat, LevelChunk chunk, int maxSpawns) {
         try {
             BlockPos start = (BlockPos) getRandomPosWithin.invoke((Level) cx.level, chunk);
-            if (start.getY() >= cx.level.getMinY() + 1) spawnCategoryForPosition(cx, cat, chunk, start, maxSpawns, cnt);
+            if (start.getY() >= cx.level.getMinY() + 1) spawnCategoryForPosition(cx, cat, chunk, start, maxSpawns);
         } catch (RuntimeException | Error e) {
             throw e;
         } catch (Throwable t) {
@@ -319,7 +348,7 @@ public final class SpawnService implements Listener {
      * player: no player at all is not a reason to skip the position, and the 128-block checks see "in range".
      * A real player closer than 24 blocks still blocks the position, as in vanilla.
      */
-    private void spawnCategoryForPosition(Ctx cx, MobCategory cat, LevelChunk chunk, BlockPos start, int maxSpawns, int[] cnt)
+    private void spawnCategoryForPosition(Ctx cx, MobCategory cat, LevelChunk chunk, BlockPos start, int maxSpawns)
             throws Throwable {
         ServerLevel level = cx.level;
         StructureManager structureManager = level.structureManager();
@@ -375,7 +404,7 @@ public final class SpawnService implements Listener {
                         if (!mob.isRemoved()) {
                             clusterSize++;
                             groupSize++;
-                            cnt[cat.ordinal()]++;
+                            bump(cx, cat, mob.blockPosition().getX() >> 4, mob.blockPosition().getZ() >> 4);
                             stateAfterSpawn.invoke(cx.state, mob, (ChunkAccess) chunk);
                             protect(mob);
                         }
